@@ -1,0 +1,45 @@
+import os
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.config import get_settings
+from app.db import init_db
+from app.routers import auth, documents, chat, unanswered, analytics
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    settings = get_settings()
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = settings.google_application_credentials
+    from app.auth.firebase import init_firebase
+    init_firebase(settings.firebase_admin_credentials)
+    await init_db()
+    yield
+
+
+app = FastAPI(
+    title="FAQ RAG API",
+    version="0.1.0",
+    lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "https://your-vercel-domain.vercel.app"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
+app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
+app.include_router(unanswered.router, prefix="/api/unanswered", tags=["unanswered"])
+app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
+
+
+@app.get("/healthz")
+async def health_check():
+    return {"status": "ok"}

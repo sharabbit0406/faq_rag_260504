@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>測試 2：浮動按鈕</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      min-height: 100vh;
+    }
+
+    .topbar {
+      height: 56px;
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 12px;
+    }
+    .topbar-logo {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, #1d4ed8, #38bdf8);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 16px;
+    }
+    .topbar-title { font-weight: 700; font-size: 15px; color: #0f172a; }
+    .topbar-subtitle { font-size: 12px; color: #94a3b8; }
+
+    .content {
+      padding: 32px;
+      max-width: 720px;
+    }
+
+    .product-card {
+      background: white;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      padding: 28px;
+      max-width: 680px;
+      margin-bottom: 20px;
+    }
+    .product-badge {
+      display: inline-block;
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 999px;
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+    }
+    .product-name { font-size: 22px; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
+    .product-desc { font-size: 14px; color: #64748b; line-height: 1.75; margin-bottom: 20px; }
+    .product-specs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .spec-item { background: #f8fafc; border-radius: 10px; padding: 12px 14px; }
+    .spec-label { font-size: 11px; color: #94a3b8; margin-bottom: 2px; font-weight: 500; }
+    .spec-value { font-size: 13px; color: #1e293b; font-weight: 600; }
+
+    .price-card {
+      background: white;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      padding: 20px 28px;
+      max-width: 680px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .price-label { font-size: 13px; color: #64748b; }
+    .price-value { font-size: 28px; font-weight: 800; color: #0f172a; }
+    .price-unit { font-size: 13px; color: #94a3b8; font-weight: 400; }
+    .btn-buy {
+      background: linear-gradient(135deg, #1d4ed8, #38bdf8);
+      color: white; border: none; border-radius: 10px;
+      padding: 12px 28px; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn-buy:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    /* ── 浮動按鈕 ── */
+    #chat-toggle {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, #1d4ed8, #38bdf8);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 24px;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(29,78,216,0.4);
+      z-index: 1000;
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #chat-toggle:hover { transform: scale(1.1); box-shadow: 0 6px 28px rgba(29,78,216,0.5); }
+
+    /* ── Widget 視窗 ── */
+    #chat-window {
+      position: fixed;
+      bottom: 92px;
+      right: 24px;
+      width: 360px;
+      height: 520px;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.18);
+      z-index: 999;
+      transform: scale(0.95) translateY(12px);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.25s cubic-bezier(0.4,0,0.2,1), opacity 0.2s;
+    }
+    #chat-window.open {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #chat-window iframe { width: 100%; height: 100%; border: none; }
+
+    /* ── 測試標題列 ── */
+    .test-banner {
+      background: #eff6ff;
+      border-bottom: 1px solid #bfdbfe;
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .test-badge {
+      background: linear-gradient(135deg, #1d4ed8, #38bdf8);
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .test-title { font-size: 13px; font-weight: 600; color: #1e40af; }
+    .test-desc { font-size: 12px; color: #64748b; }
+    .test-sep { color: #93c5fd; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-logo">✦</div>
+    <div>
+      <div class="topbar-title">商品詳情</div>
+      <div class="topbar-subtitle">language APP</div>
+    </div>
+  </div>
+
+  <div class="test-banner">
+    <span class="test-badge">測試 2</span>
+    <span class="test-title">浮動按鈕</span>
+    <span class="test-sep">·</span>
+    <span class="test-desc">右下角浮動按鈕，點擊後展開客服視窗，是最常見的 Widget 嵌入方式</span>
+  </div>
+
+  <div class="content">
+    <div class="product-card">
+      <div class="product-badge">PREMIUM</div>
+      <div class="product-name">AI 智慧客服系統</div>
+      <div class="product-desc">
+        基於 RAG 架構的多租戶智慧客服平台，支援 PDF、CSV、Excel、TXT 格式的知識庫建立。
+        AI 只根據您上傳的資料回答，嚴格避免幻覺，並提供完整的來源引用。
+      </div>
+      <div class="product-specs">
+        <div class="spec-item">
+          <div class="spec-label">適合對象</div>
+          <div class="spec-value">中小型電商、教育機構</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">支援格式</div>
+          <div class="spec-value">PDF / CSV / Excel / TXT</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">核心技術</div>
+          <div class="spec-value">Gemini 2.5 Flash + Qdrant</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">多輪對話</div>
+          <div class="spec-value">支援，含查詢改寫</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="price-card">
+      <div>
+        <div class="price-label">月費方案</div>
+        <div class="price-value">NT$99 <span class="price-unit">/ 月</span></div>
+      </div>
+      <button class="btn-buy">立即購買</button>
+    </div>
+  </div>
+
+  <!-- 浮動客服按鈕 -->
+  <button id="chat-toggle" title="客服助理">💬</button>
+
+  <!-- Widget 視窗 -->
+  <div id="chat-window">
+    <iframe src="http://localhost:3000/widget/202593e1-d375-4abc-a0d0-5d63da31b72b" title="客服助理"></iframe>
+  </div>
+
+  <script>
+    const toggle = document.getElementById('chat-toggle');
+    const chatWindow = document.getElementById('chat-window');
+    let isOpen = false;
+
+    toggle.addEventListener('click', () => {
+      isOpen = !isOpen;
+      chatWindow.classList.toggle('open', isOpen);
+      toggle.textContent = isOpen ? '✕' : '💬';
+    });
+  </script>
+</body>
+</html>

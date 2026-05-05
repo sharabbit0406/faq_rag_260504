@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>測試 4：手機尺寸模擬</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── 頂部導覽列 ── */
+    .topbar {
+      height: 56px;
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .topbar-logo {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, #1d4ed8, #38bdf8);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 16px;
+    }
+    .topbar-title { font-weight: 700; font-size: 15px; color: #0f172a; }
+    .topbar-subtitle { font-size: 12px; color: #94a3b8; }
+
+    /* ── 測試標題列 ── */
+    .test-banner {
+      background: #eff6ff;
+      border-bottom: 1px solid #bfdbfe;
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .test-badge {
+      background: linear-gradient(135deg, #1d4ed8, #38bdf8);
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .test-title { font-size: 13px; font-weight: 600; color: #1e40af; }
+    .test-desc { font-size: 12px; color: #64748b; }
+    .test-sep { color: #93c5fd; }
+
+    /* ── 主體：兩欄 ── */
+    .layout {
+      flex: 1;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 48px;
+      padding: 40px 32px;
+    }
+
+    /* ── 左欄：商品資訊 ── */
+    .info-col {
+      width: 300px;
+      flex-shrink: 0;
+    }
+
+    .product-card {
+      background: white;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .product-badge {
+      display: inline-block;
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 999px;
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+    }
+    .product-name { font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 8px; line-height: 1.3; }
+    .product-desc { font-size: 13px; color: #64748b; line-height: 1.75; margin-bottom: 18px; }
+    .product-specs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .spec-item { background: #f8fafc; border-radius: 10px; padding: 10px 12px; }
+    .spec-label { font-size: 10px; color: #94a3b8; margin-bottom: 2px; font-weight: 500; }
+    .spec-value { font-size: 12px; color: #1e293b; font-weight: 600; }
+
+    .price-card {
+      background: white;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .price-label { font-size: 12px; color: #64748b; margin-bottom: 2px; }
+    .price-value { font-size: 22px; font-weight: 800; color: #0f172a; }
+    .price-unit { font-size: 12px; color: #94a3b8; font-weight: 400; }
+    .btn-buy {
+      background: linear-gradient(135deg, #1d4ed8, #38bdf8);
+      color: white; border: none; border-radius: 10px;
+      padding: 10px 20px; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: opacity 0.2s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .btn-buy:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    /* ── 右欄：手機預覽 ── */
+    .phone-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      flex-shrink: 0;
+    }
+
+    .phone-col-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #94a3b8;
+      text-transform: uppercase;
+    }
+
+    .phone-frame {
+      width: 375px;
+      height: 667px;
+      border: 8px solid #334155;
+      border-radius: 36px;
+      overflow: hidden;
+      background: white;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15), inset 0 0 0 2px #475569;
+      position: relative;
+    }
+    .phone-notch {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 20px;
+      background: #334155;
+      border-radius: 0 0 16px 16px;
+      z-index: 10;
+    }
+    .phone-frame iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      padding-top: 20px;
+    }
+
+    .phone-caption {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-logo">✦</div>
+    <div>
+      <div class="topbar-title">商品詳情</div>
+      <div class="topbar-subtitle">language APP</div>
+    </div>
+  </div>
+
+  <div class="test-banner">
+    <span class="test-badge">測試 4</span>
+    <span class="test-title">手機尺寸模擬</span>
+    <span class="test-sep">·</span>
+    <span class="test-desc">模擬 Widget 在手機螢幕（375 × 667）中的顯示效果，驗證行動裝置排版</span>
+  </div>
+
+  <div class="layout">
+    <!-- 左欄：商品介紹 -->
+    <div class="info-col">
+      <div class="product-card">
+        <div class="product-badge">PREMIUM</div>
+        <div class="product-name">AI 智慧客服系統</div>
+        <div class="product-desc">
+          基於 RAG 架構的多租戶智慧客服平台，支援 PDF、CSV、Excel、TXT 格式的知識庫建立。
+          AI 只根據您上傳的資料回答，嚴格避免幻覺，並提供完整的來源引用。
+        </div>
+        <div class="product-specs">
+          <div class="spec-item">
+            <div class="spec-label">適合對象</div>
+            <div class="spec-value">中小型電商</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">支援格式</div>
+            <div class="spec-value">PDF / CSV / TXT</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">核心技術</div>
+            <div class="spec-value">Gemini 2.5 Flash</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">多輪對話</div>
+            <div class="spec-value">支援，含改寫</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="price-card">
+        <div>
+          <div class="price-label">月費方案</div>
+          <div class="price-value">NT$99 <span class="price-unit">/ 月</span></div>
+        </div>
+        <button class="btn-buy">立即購買</button>
+      </div>
+    </div>
+
+    <!-- 右欄：手機預覽 -->
+    <div class="phone-col">
+      <div class="phone-col-label">手機預覽</div>
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <iframe src="http://localhost:3000/widget/202593e1-d375-4abc-a0d0-5d63da31b72b" title="客服助理"></iframe>
+      </div>
+      <div class="phone-caption">模擬 iPhone SE / Android 中型機種顯示效果</div>
+    </div>
+  </div>
+</body>
+</html>
