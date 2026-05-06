@@ -208,7 +208,7 @@ async def run_rag_pipeline(
             "debug": {**debug, "source": "off_topic"} if debug else None,
         }
 
-    if verdict in ("no", "partial"):
+    if verdict == "no":
         return {
             "answer": refusal_message,
             "was_refused": True,
@@ -219,9 +219,21 @@ async def run_rag_pipeline(
             "debug": debug,
         }
 
-    # 6. Generate answer
-    llm_result = await generate_answer(rewritten, reranked)
-    answer = llm_result.get("answer", refusal_message)
+    # 6. Generate answer (verdict == "yes")
+    ai_tone = tenant_settings.get("ai_tone", "friendly")
+    ai_style_note = tenant_settings.get("ai_style_note", "")
+    llm_result = await generate_answer(rewritten, reranked, history=history, tone=ai_tone, style_note=ai_style_note)
+    if llm_result.get("cannot_answer"):
+        return {
+            "answer": refusal_message,
+            "was_refused": True,
+            "rewritten_query": rewritten,
+            "retrieved_chunks": [{"id": c["id"], "content": c["content"][:200]} for c in reranked],
+            "confidence_score": 0.0,
+            "citations": None,
+            "debug": debug,
+        }
+    answer = llm_result.get("answer") or refusal_message
     used_ids = set(llm_result.get("used_chunk_ids", []))
 
     citations = [

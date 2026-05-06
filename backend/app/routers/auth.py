@@ -104,6 +104,8 @@ class SettingsRequest(BaseModel):
     daily_llm_limit: int | None = None
     contact_email: str | None = None
     contact_phone: str | None = None
+    ai_tone: str | None = None        # "formal" | "friendly" | "lively"
+    ai_style_note: str | None = None  # free-text style instruction
 
 
 @router.get("/settings")
@@ -115,6 +117,8 @@ async def get_settings(tenant: Tenant = Depends(get_current_tenant)):
         "daily_llm_limit": s.get("daily_llm_limit", 100),
         "contact_email": s.get("contact_email", ""),
         "contact_phone": s.get("contact_phone", ""),
+        "ai_tone": s.get("ai_tone", "friendly"),
+        "ai_style_note": s.get("ai_style_note", ""),
     }
 
 
@@ -147,6 +151,12 @@ async def update_settings(
         current["contact_email"] = req.contact_email
     if req.contact_phone is not None:
         current["contact_phone"] = req.contact_phone
+    if req.ai_tone is not None:
+        if req.ai_tone not in ("formal", "friendly", "lively", "custom"):
+            raise HTTPException(status_code=400, detail="ai_tone 必須是 formal / friendly / lively / custom")
+        current["ai_tone"] = req.ai_tone
+    if req.ai_style_note is not None:
+        current["ai_style_note"] = req.ai_style_note
     await session.execute(
         update(Tenant).where(Tenant.id == tenant.id).values(settings=current)
     )
@@ -157,4 +167,6 @@ async def update_settings(
         "daily_llm_limit": current.get("daily_llm_limit", 100),
         "contact_email": current.get("contact_email", ""),
         "contact_phone": current.get("contact_phone", ""),
+        "ai_tone": current.get("ai_tone", "friendly"),
+        "ai_style_note": current.get("ai_style_note", ""),
     }

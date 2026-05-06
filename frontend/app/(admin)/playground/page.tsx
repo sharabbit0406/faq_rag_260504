@@ -1,9 +1,18 @@
 ﻿"use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { apiPost } from "@/lib/api";
+import { apiGet, apiPatch, apiPost } from "@/lib/api";
 import type { ChatMessage, DebugInfo } from "@/lib/types";
+
+const TONE_OPTIONS = [
+  { value: "formal",   label: "正式", desc: "專業穩重，使用「您」" },
+  { value: "friendly", label: "親切", desc: "溫暖自然，像朋友聊天" },
+  { value: "lively",   label: "活潑", desc: "輕鬆有趣，可用 emoji" },
+  { value: "custom",   label: "其他", desc: "自行描述語氣風格" },
+] as const;
+
+type ToneValue = typeof TONE_OPTIONS[number]["value"];
 
 function SendIcon() {
   return (
@@ -23,6 +32,39 @@ export default function PlaygroundPage() {
   const [expandedDebug, setExpandedDebug] = useState<number | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const [aiTone, setAiTone] = useState<ToneValue>("friendly");
+  const [aiStyleNote, setAiStyleNote] = useState("");
+  const [savedAiTone, setSavedAiTone] = useState<ToneValue>("friendly");
+  const [savedAiStyleNote, setSavedAiStyleNote] = useState("");
+  const [aiStyleSaving, setAiStyleSaving] = useState(false);
+  const [aiStyleSaved, setAiStyleSaved] = useState(false);
+
+  const [aiStyleOpen, setAiStyleOpen] = useState(false);
+  const aiStyleIsDirty = (aiTone !== savedAiTone || aiStyleNote !== savedAiStyleNote) && !aiStyleSaving;
+
+  useEffect(() => {
+    if (!loading) inputRef.current?.focus();
+  }, [loading]);
+
+  useEffect(() => {
+    if (!tenant) return;
+    apiGet<{ ai_tone?: string; ai_style_note?: string }>("/api/auth/settings").then((data) => {
+      const t = (data.ai_tone ?? "friendly") as ToneValue;
+      const n = data.ai_style_note ?? "";
+      setAiTone(t); setSavedAiTone(t);
+      setAiStyleNote(n); setSavedAiStyleNote(n);
+    }).catch(() => {});
+  }, [tenant]);
+
+  async function saveAiStyle() {
+    setAiStyleSaving(true);
+    try {
+      await apiPatch("/api/auth/settings", { ai_tone: aiTone, ai_style_note: aiStyleNote });
+      setSavedAiTone(aiTone); setSavedAiStyleNote(aiStyleNote);
+      setAiStyleSaved(true); setTimeout(() => setAiStyleSaved(false), 2500);
+    } catch { /* ignore */ } finally { setAiStyleSaving(false); }
+  }
 
   async function sendMessage(text?: string) {
     const question = (text ?? input).trim();
@@ -47,7 +89,6 @@ export default function PlaygroundPage() {
       setMessages((prev) => [...prev, { role: "assistant", content: `錯誤：${err.message}`, was_refused: false }]);
     } finally {
       setLoading(false);
-      inputRef.current?.focus();
     }
   }
 
@@ -79,6 +120,72 @@ export default function PlaygroundPage() {
             重置對話
           </button>
         </div>
+      </div>
+
+      {/* AI 回應風格（可折疊） */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setAiStyleOpen((v) => !v)}
+          className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-slate-50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-slate-700">AI 回應風格</span>
+            {!aiStyleOpen && (
+              <span className="text-xs text-slate-400 font-normal">
+                {TONE_OPTIONS.find((o) => o.value === aiTone)?.label ?? ""}
+                {aiStyleIsDirty && <span className="ml-2 text-amber-500">● 未儲存</span>}
+              </span>
+            )}
+          </div>
+          <span className="text-slate-400 text-xs transition-transform" style={{ transform: aiStyleOpen ? "rotate(180deg)" : "rotate(0deg)" }}>▼</span>
+        </button>
+
+        {aiStyleOpen && (
+          <div className="px-5 pb-4 space-y-3 border-t border-slate-100">
+            <div className="flex items-center justify-end gap-2.5 pt-3">
+              {aiStyleIsDirty && <span className="text-xs text-amber-500 font-medium">● 有未儲存的變更</span>}
+              {aiStyleSaved && <span className="text-xs text-emerald-600 font-medium">已儲存 ✓</span>}
+              <button onClick={saveAiStyle} disabled={aiStyleSaving || !aiStyleIsDirty}
+                className="text-xs px-3 py-1.5 rounded-xl font-semibold text-white disabled:opacity-40 transition-all"
+                style={{ background: "linear-gradient(135deg,#3b82f6,#38bdf8)" }}>
+                {aiStyleSaving ? "儲存中…" : "儲存"}
+              </button>
+            </div>
+            <div className="flex gap-2">
+              {TONE_OPTIONS.map((opt) => (
+                <label key={opt.value}
+                  className="flex-1 flex flex-col gap-0.5 rounded-xl border-2 px-3 py-2.5 cursor-pointer transition-all"
+                  style={{
+                    borderColor: aiTone === opt.value ? "#38bdf8" : "#e2e8f0",
+                    background: aiTone === opt.value ? "#eff6ff" : "#f8fafc",
+                  }}>
+                  <div className="flex items-center gap-1.5">
+                    <input type="radio" name="pg_ai_tone" value={opt.value}
+                      checked={aiTone === opt.value}
+                      onChange={() => setAiTone(opt.value)}
+                      className="accent-sky-500" />
+                    <span className="text-xs font-semibold text-slate-700">{opt.label}</span>
+                  </div>
+                  <p className="text-xs text-slate-400 ml-4 leading-tight">{opt.desc}</p>
+                </label>
+              ))}
+            </div>
+            {aiTone === "custom" ? (
+              <textarea rows={2} value={aiStyleNote} onChange={(e) => setAiStyleNote(e.target.value)}
+                placeholder="描述你想要的語氣風格，例如：像台灣年輕店員，親切有活力，可以加入台式口語…"
+                className="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 outline-none resize-none transition-all"
+                onFocus={(e) => { e.currentTarget.style.borderColor = "#38bdf8"; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = "#cbd5e1"; }} />
+            ) : (
+              <input type="text" value={aiStyleNote} onChange={(e) => setAiStyleNote(e.target.value)}
+                placeholder="補充說明（選填）：例如「我們是寵物品牌，可以對用戶的寵物表示關心」"
+                className="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 outline-none transition-all"
+                onFocus={(e) => { e.currentTarget.style.borderColor = "#38bdf8"; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = "#cbd5e1"; }} />
+            )}
+          </div>
+        )}
       </div>
 
       {/* Chat box */}

@@ -79,26 +79,35 @@ export default function KnowledgePage() {
     }, 2000);
   }
 
-  async function uploadFile(file: File) {
-    setUploadingCount((n) => n + 1);
+  async function uploadFiles(files: FileList | File[]) {
+    const list = Array.from(files);
+    if (list.length === 0) return;
+    setUploadingCount((n) => n + list.length);
     try {
       const form = new FormData();
-      form.append("file", file);
-      const res = await apiPost<{ id: string; status: string }>("/api/documents/", form, true);
-      const newDoc: Document = {
-        id: res.id, filename: file.name, file_type: file.name.split(".").pop() ?? "",
-        size_bytes: file.size, status: "pending", chunk_count: 0, created_at: new Date().toISOString(),
-      };
-      setDocs((prev) => [newDoc, ...prev]);
-      startPolling(res.id);
-    } catch (err: any) {
-      alert(`上傳失敗（${file.name}）：${err.message}`);
+      list.forEach((f) => form.append("files", f));
+      const results = await apiPost<{ id: string; filename: string; status: string }[]>(
+        "/api/documents/batch", form, true
+      );
+      const now = new Date().toISOString();
+      const newDocs: Document[] = results.map((r, i) => ({
+        id: r.id,
+        filename: list[i].name,
+        file_type: list[i].name.split(".").pop() ?? "",
+        size_bytes: list[i].size,
+        status: "pending",
+        chunk_count: 0,
+        created_at: now,
+      }));
+      setDocs((prev) => [...newDocs, ...prev]);
+      newDocs.forEach((d) => startPolling(d.id));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "未知錯誤";
+      alert(`上傳失敗：${msg}`);
     } finally {
-      setUploadingCount((n) => n - 1);
+      setUploadingCount((n) => n - list.length);
     }
   }
-
-  function uploadFiles(files: FileList | File[]) { Array.from(files).forEach(uploadFile); }
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files?.length) uploadFiles(e.target.files); e.target.value = "";
   }

@@ -99,6 +99,7 @@ export default function SettingsPage() {
   const router = useRouter();
 
   const [name, setName] = useState("");
+  const [savedName, setSavedName] = useState("");
   const [nameSaving, setNameSaving] = useState(false);
   const [nameSaved, setNameSaved] = useState(false);
   const [nameError, setNameError] = useState("");
@@ -107,25 +108,35 @@ export default function SettingsPage() {
   const [pwSending, setPwSending] = useState(false);
 
   const [dialogue, setDialogue] = useState({ greeting_message: "", refusal_message: "" });
+  const [savedDialogue, setSavedDialogue] = useState({ greeting_message: "", refusal_message: "" });
   const [dialogueLoading, setDialogueLoading] = useState(true);
   const [dialogueSaving, setDialogueSaving] = useState(false);
   const [dialogueSaved, setDialogueSaved] = useState(false);
   const [dialogueError, setDialogueError] = useState("");
 
   const [system, setSystem] = useState({ daily_llm_limit: 100, contact_email: "", contact_phone: "" });
+  const [savedSystem, setSavedSystem] = useState({ daily_llm_limit: 100, contact_email: "", contact_phone: "" });
   const [systemLoading, setSystemLoading] = useState(true);
   const [systemSaving, setSystemSaving] = useState(false);
   const [systemSaved, setSystemSaved] = useState(false);
   const [systemError, setSystemError] = useState("");
 
-  useEffect(() => { if (tenant) setName(tenant.name); }, [tenant]);
+  const nameIsDirty = name.trim() !== savedName && !nameSaving;
+  const dialogueIsDirty = JSON.stringify(dialogue) !== JSON.stringify(savedDialogue) && !dialogueSaving;
+  const systemIsDirty = JSON.stringify(system) !== JSON.stringify(savedSystem) && !systemSaving;
+
+  useEffect(() => {
+    if (tenant) { setName(tenant.name); setSavedName(tenant.name); }
+  }, [tenant]);
 
   useEffect(() => {
     if (!tenant) return;
     apiGet<TenantSettings>("/api/auth/settings")
       .then((data) => {
-        setDialogue({ greeting_message: data.greeting_message, refusal_message: data.refusal_message });
-        setSystem({ daily_llm_limit: data.daily_llm_limit, contact_email: data.contact_email || "", contact_phone: data.contact_phone || "" });
+        const d = { greeting_message: data.greeting_message, refusal_message: data.refusal_message };
+        const s = { daily_llm_limit: data.daily_llm_limit, contact_email: data.contact_email || "", contact_phone: data.contact_phone || "" };
+        setDialogue(d); setSavedDialogue(d);
+        setSystem(s); setSavedSystem(s);
       })
       .catch(() => {})
       .finally(() => { setDialogueLoading(false); setSystemLoading(false); });
@@ -134,11 +145,11 @@ export default function SettingsPage() {
   async function saveName(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = name.trim();
-    if (!trimmed || trimmed === tenant?.name) return;
+    if (!trimmed || trimmed === savedName) return;
     setNameSaving(true); setNameError(""); setNameSaved(false);
     try {
       await apiPatch("/api/auth/profile", { name: trimmed });
-      await refreshTenant(); setNameSaved(true); setTimeout(() => setNameSaved(false), 3000);
+      await refreshTenant(); setSavedName(trimmed); setNameSaved(true); setTimeout(() => setNameSaved(false), 3000);
     } catch (err: any) { setNameError(err.message || "儲存失敗"); }
     finally { setNameSaving(false); }
   }
@@ -148,7 +159,7 @@ export default function SettingsPage() {
     setDialogueSaving(true); setDialogueError(""); setDialogueSaved(false);
     try {
       await apiPatch("/api/auth/settings", { greeting_message: dialogue.greeting_message, refusal_message: dialogue.refusal_message });
-      setDialogueSaved(true); setTimeout(() => setDialogueSaved(false), 3000);
+      setSavedDialogue({ ...dialogue }); setDialogueSaved(true); setTimeout(() => setDialogueSaved(false), 3000);
     } catch (err: any) { setDialogueError(err.message || "儲存失敗"); }
     finally { setDialogueSaving(false); }
   }
@@ -158,7 +169,7 @@ export default function SettingsPage() {
     setSystemSaving(true); setSystemError(""); setSystemSaved(false);
     try {
       await apiPatch("/api/auth/settings", { daily_llm_limit: system.daily_llm_limit, contact_email: system.contact_email, contact_phone: system.contact_phone });
-      setSystemSaved(true); setTimeout(() => setSystemSaved(false), 3000);
+      setSavedSystem({ ...system }); setSystemSaved(true); setTimeout(() => setSystemSaved(false), 3000);
     } catch (err: any) { setSystemError(err.message || "儲存失敗"); }
     finally { setSystemSaving(false); }
   }
@@ -180,13 +191,16 @@ export default function SettingsPage() {
           <Field label="店家名稱">
             <div className="flex gap-2">
               <StyledInput value={name} onChange={(e) => setName(e.target.value)} placeholder="店家名稱" required className="flex-1" />
-              <button type="submit" disabled={nameSaving || name.trim() === tenant?.name}
+              <button type="submit" disabled={nameSaving || !nameIsDirty}
                 className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all"
                 style={{ background: "linear-gradient(135deg,#3b82f6,#38bdf8)" }}>
                 {nameSaving ? "儲存中…" : "儲存"}
               </button>
             </div>
-            <SaveStatus saved={nameSaved} error={nameError} />
+            <div className="flex items-center gap-3 mt-1">
+              {nameIsDirty && <span className="text-xs text-amber-500 font-medium">● 有未儲存的變更</span>}
+              <SaveStatus saved={nameSaved} error={nameError} />
+            </div>
           </Field>
         </form>
 
@@ -223,6 +237,7 @@ export default function SettingsPage() {
           </Field>
           <div className="flex items-center gap-3 pt-1">
             <SaveButton loading={dialogueSaving} />
+            {dialogueIsDirty && <span className="text-xs text-amber-500 font-medium">● 有未儲存的變更</span>}
             <SaveStatus saved={dialogueSaved} error={dialogueError} />
           </div>
         </Section>
@@ -257,6 +272,7 @@ export default function SettingsPage() {
           </div>
           <div className="flex items-center gap-3 pt-1">
             <SaveButton loading={systemSaving} />
+            {systemIsDirty && <span className="text-xs text-amber-500 font-medium">● 有未儲存的變更</span>}
             <SaveStatus saved={systemSaved} error={systemError} />
           </div>
         </Section>

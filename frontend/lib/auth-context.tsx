@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, signInAnonymously } from "firebase/auth";
+import { FirebaseError } from "firebase/app";
 import { auth } from "./firebase";
 import { apiPost } from "./api";
 
@@ -79,8 +80,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const credential = await createUserWithEmailAndPassword(auth, email, password);
       uid = credential.user.uid;
-    } catch (err: any) {
-      if (err.code === "auth/email-already-in-use") {
+    } catch (err: unknown) {
+      if (err instanceof FirebaseError && err.code === "auth/email-already-in-use") {
         const credential = await signInWithEmailAndPassword(auth, email, password);
         uid = credential.user.uid;
       } else {
@@ -89,8 +90,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     try {
       await apiPost("/api/auth/signup", { email, tenant_name: tenantName, firebase_uid: uid });
-    } catch (err: any) {
-      if (!err.message?.includes("409")) throw err;
+    } catch (err: unknown) {
+      if (!(err instanceof Error && err.message?.includes("409"))) throw err;
     }
     const profile = await apiPost<TenantUser>("/api/auth/profile", {
       email, tenant_name: tenantName, firebase_uid: uid,

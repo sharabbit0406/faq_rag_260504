@@ -1,0 +1,38 @@
+開兩個終端，分別執行：
+
+**終端 1 — 後端**
+
+`cd "C:\Users\sha\Documents\生成式AI學習\claude code\project1\backend"
+uv run uvicorn app.main:app --reload --port 8000`
+
+看到 `Application startup complete.` 就代表啟動成功。
+
+後端有 
+
+`uv run uvicorn app.main:app --reload --port 8000` 的話會自動重新載入
+
+後端跑的是舊版本。
+
+請在後端終端按 **Ctrl+C**，然後執行這個指令（先清 pycache 再啟動）：
+
+`cd "C:\Users\sha\Documents\生成式AI學習\claude code\project1\backend"
+Get-ChildItem -Recurse -Filter "__pycache__" | Remove-Item -Recurse -Force
+uv run uvicorn app.main:app --reload --port 8000`
+
+清掉 pycache 確保不用舊的 `.pyc` 快取檔。
+
+---
+
+**終端 2 — 前端**
+
+`cd "C:\Users\sha\Documents\生成式AI學習\claude code\project1\frontend"
+npm run dev`
+
+**3. 啟動資料庫容器**
+
+確認 Docker 啟動後，在終端機執行：
+
+`cd "c:\Users\sha\Documents\生成式AI學習\claude code\project1"
+docker compose up -d db`
+
+看到 `Ready in ...ms` 就代表前端跑起來了，然後開瀏覽器進 `http://localhost:3000`。

@@ -2,12 +2,33 @@ from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Backgro
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 import uuid
+from typing import List
 
 from app.deps import get_current_tenant, get_session
 from app.models.tenant import Tenant
 from app.models.document import Document
 
 router = APIRouter()
+
+MAX_FILE_SIZE = 200 * 1024 * 1024  # 200 MB
+ALLOWED_TYPES = {"pdf", "csv", "xlsx", "xls", "txt"}
+
+
+def _validate_ext(filename: str) -> str:
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if ext not in ALLOWED_TYPES:
+        raise HTTPException(status_code=400, detail=f"不支援的檔案格式：{ext}")
+    return ext
+
+
+async def _read_and_validate(file: UploadFile) -> bytes:
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail=f"{file.filename} 超過大小限制（最大 {MAX_FILE_SIZE // 1024 // 1024} MB）",
+        )
+    return content
 
 
 @router.post("/")
@@ -17,10 +38,8 @@ async def upload_document(
     tenant: Tenant = Depends(get_current_tenant),
     session: AsyncSession = Depends(get_session),
 ):
-    allowed_types = {"pdf", "csv", "xlsx", "xls", "txt"}
-    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
-    if ext not in allowed_types:
-        raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}")
+    ext = _validate_ext(file.filename)
+    content = await _read_and_validate(file)
 
     doc = Document(
         id=str(uuid.uuid4()),
@@ -28,18 +47,51 @@ async def upload_document(
         filename=file.filename,
         file_type=ext,
         gcs_path="",  # filled by indexing task
-        size_bytes=0,
+        size_bytes=len(content),
         status="pending",
     )
     session.add(doc)
     await session.commit()
 
-    # read file content before passing to background task
-    content = await file.read()
     from app.tasks.indexing import index_document
     background_tasks.add_task(index_document, doc.id, content, file.filename, ext, tenant.id)
 
     return {"id": doc.id, "status": "pending"}
+
+
+@router.post("/batch")
+async def upload_documents_batch(
+    background_tasks: BackgroundTasks,
+    files: List[UploadFile] = File(...),
+    tenant: Tenant = Depends(get_current_tenant),
+    session: AsyncSession = Depends(get_session),
+):
+    if not files:
+        raise HTTPException(status_code=400, detail="請至少選擇一個檔案")
+
+    results = []
+    from app.tasks.indexing import index_document
+
+    for file in files:
+        ext = _validate_ext(file.filename)
+        content = await _read_and_validate(file)
+
+        doc = Document(
+            id=str(uuid.uuid4()),
+            tenant_id=tenant.id,
+            filename=file.filename,
+            file_type=ext,
+            gcs_path="",
+            size_bytes=len(content),
+            status="pending",
+        )
+        session.add(doc)
+        await session.flush()
+        background_tasks.add_task(index_document, doc.id, content, file.filename, ext, tenant.id)
+        results.append({"id": doc.id, "filename": file.filename, "status": "pending"})
+
+    await session.commit()
+    return results
 
 
 @router.get("/")

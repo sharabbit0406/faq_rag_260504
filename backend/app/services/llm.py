@@ -1,7 +1,10 @@
 import json
+import logging
 import vertexai
 from vertexai.generative_models import GenerativeModel, GenerationConfig
 from app.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 _model: GenerativeModel | None = None
 
@@ -25,16 +28,23 @@ async def call_llm(prompt: str, json_mode: bool = False) -> str:
     return response.text
 
 
-ANSWER_PROMPT = """你是一個專業的客服助理。請根據以下提供的知識庫片段回答用戶問題。
+ANSWER_PROMPT = """你是一個客服助理，說話像真人，不像機器人。請根據知識庫片段回答用戶問題。
 
-規則：
-1. 只能使用以下片段中的資訊回答，不能加入片段以外的知識
-2. 若片段中的資訊不足以完整回答，請誠實說明哪些部分無法確認
-3. 回答要自然流暢，不要直接複製貼上片段
-4. "answer" 欄位只放給用戶看的文字，不可包含任何 chunk_id 或技術標記
-5. 將你參考的片段 ID 填入 "used_chunk_ids"（僅供系統追蹤，不出現在回答中）
+語氣風格：
+{tone_instruction}
 
-知識庫片段：
+回答規則：
+1. 主要根據以下知識庫片段回答，不要憑空捏造片段中完全未提及的事實
+2. 允許對片段中的數字、條件做基本邏輯推論（例如：片段說「滿199元免運」，用戶問「買200元要運費嗎」→ 200>199，可推論免運費）
+3. 允許語意等價推論（例如：「免運費」即代表「運費為0元」，不需要片段明寫「0元」）
+4. 若片段資訊確實不足以回答，將 "cannot_answer" 設為 true，不要捏造答案
+5. 禁止逐字複製片段原文，要用自己的話重新說
+6. 根據用戶情境調整語氣：用戶在抱怨→先表達理解；用戶在詢問→直接回答重點
+7. 回答要簡潔，只說跟用戶當下問題最相關的，不要堆砌所有資訊
+8. "answer" 欄位只放給用戶看的文字，不可包含任何 chunk_id 或技術標記
+9. 將你參考的片段 ID 填入 "used_chunk_ids"（僅供系統追蹤，不出現在回答中）
+
+{history_section}知識庫片段：
 {chunks}
 
 用戶問題：{question}
@@ -42,8 +52,15 @@ ANSWER_PROMPT = """你是一個專業的客服助理。請根據以下提供的�
 請以 JSON 格式回答：
 {{
   "answer": "你的回答（純文字，不含 chunk_id）",
+  "cannot_answer": false,
   "used_chunk_ids": ["chunk_id_1", "chunk_id_2"]
 }}"""
+
+_TONE_PRESETS = {
+    "formal": "正式、專業、有禮貌。使用「您」稱呼用戶，語氣穩重，避免使用emoji或口語化用詞。",
+    "friendly": "親切自然，語氣溫暖。可以使用「你」，像和熟悉的朋友聊天，但仍保持專業。",
+    "lively": "活潑輕鬆，有個性。語氣像年輕人說話，可以適度使用 emoji，讓對話更有趣。",
+}
 
 
 import re as _re
@@ -123,16 +140,37 @@ async def generate_transfer_response(contact_phone: str = "", contact_email: str
     return await call_llm(prompt)
 
 
-async def generate_answer(question: str, chunks: list[dict]) -> dict:
+async def generate_answer(question: str, chunks: list[dict], history: list = None, tone: str = "friendly", style_note: str = "") -> dict:
     chunks_text = "\n\n".join(
         f"[chunk_id: {c['id']}]\n{c['content']}" for c in chunks
     )
-    prompt = ANSWER_PROMPT.format(chunks=chunks_text, question=question)
-    raw = await call_llm(prompt, json_mode=True)
+    if history:
+        history_lines = "\n".join(
+            f"{'用戶' if m.role == 'user' else '客服'}：{m.content}"
+            for m in history[-4:]
+        )
+        history_section = f"對話歷史（供理解上下文）：\n{history_lines}\n\n"
+    else:
+        history_section = ""
+    if tone == "custom":
+        tone_instruction = style_note.strip() if style_note and style_note.strip() else _TONE_PRESETS["friendly"]
+    else:
+        tone_instruction = _TONE_PRESETS.get(tone, _TONE_PRESETS["friendly"])
+        if style_note:
+            tone_instruction += f"\n【強制規則，必須嚴格遵守，不可忽略】：{style_note}"
+    prompt = ANSWER_PROMPT.format(chunks=chunks_text, question=question, history_section=history_section, tone_instruction=tone_instruction)
     try:
-        result = json.loads(raw)
-        if "answer" in result:
-            result["answer"] = _CHUNK_REF.sub("", result["answer"]).strip()
-        return result
-    except json.JSONDecodeError:
-        return {"answer": _CHUNK_REF.sub("", raw).strip(), "used_chunk_ids": []}
+        raw = await call_llm(prompt, json_mode=True)
+        if not raw or not raw.strip():
+            return {"answer": None, "cannot_answer": True, "used_chunk_ids": []}
+        try:
+            result = json.loads(raw)
+            if "answer" in result and result["answer"]:
+                result["answer"] = _CHUNK_REF.sub("", result["answer"]).strip()
+            return result
+        except json.JSONDecodeError:
+            cleaned = _CHUNK_REF.sub("", raw).strip()
+            return {"answer": cleaned, "cannot_answer": False, "used_chunk_ids": []}
+    except Exception as e:
+        logger.error("generate_answer failed: %s", e)
+        return {"answer": None, "cannot_answer": True, "used_chunk_ids": []}

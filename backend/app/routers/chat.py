@@ -149,25 +149,8 @@ async def chat(
             debug={"source": "greeting"} if detail_mode else None,
         )
 
-    # Playground mode: run pipeline without persisting anything to DB
-    if detail_mode:
-        from app.services.pipeline import run_rag_pipeline
-        pipeline_result = await run_rag_pipeline(
-            question=req.question,
-            tenant=tenant,
-            history=[],
-            detail_mode=True,
-            session=session,
-        )
-        return ChatResponse(
-            conversation_id="playground",
-            answer=pipeline_result["answer"],
-            was_refused=pipeline_result["was_refused"],
-            citations=pipeline_result.get("citations"),
-            debug=pipeline_result.get("debug"),
-        )
-
     # Get or create conversation
+    conversation = None
     if req.conversation_id:
         conv_result = await session.execute(
             select(Conversation).where(
@@ -176,9 +159,8 @@ async def chat(
             )
         )
         conversation = conv_result.scalar_one_or_none()
-        if not conversation:
-            raise HTTPException(status_code=404, detail="Conversation not found")
-    else:
+
+    if not conversation:
         conversation = Conversation(
             id=str(uuid.uuid4()),
             tenant_id=tenant.id,
@@ -187,7 +169,7 @@ async def chat(
         session.add(conversation)
         await session.flush()
 
-    # Fetch recent history for query rewriting
+    # Fetch recent history for query rewriting and answer context
     history_result = await session.execute(
         select(Message)
         .where(Message.conversation_id == conversation.id)
@@ -205,13 +187,13 @@ async def chat(
     )
     session.add(user_msg)
 
-    # Run RAG pipeline
+    # Run RAG pipeline (detail_mode controls debug output; quota is skipped in detail_mode)
     from app.services.pipeline import run_rag_pipeline
     pipeline_result = await run_rag_pipeline(
         question=req.question,
         tenant=tenant,
         history=history,
-        detail_mode=False,
+        detail_mode=detail_mode,
         session=session,
     )
 
@@ -236,8 +218,8 @@ async def chat(
         .values(last_active_at=datetime.now(timezone.utc))
     )
 
-    # Log unanswered question if refused
-    if pipeline_result["was_refused"]:
+    # Log unanswered question if refused (skip in playground/detail mode)
+    if pipeline_result["was_refused"] and not detail_mode:
         from app.services.unanswered_tracker import track_unanswered
         await track_unanswered(req.question, tenant.id, session)
 
@@ -248,5 +230,5 @@ async def chat(
         answer=pipeline_result["answer"],
         was_refused=pipeline_result["was_refused"],
         citations=pipeline_result.get("citations"),
-        debug=None,
+        debug=pipeline_result.get("debug") if detail_mode else None,
     )
