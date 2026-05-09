@@ -106,6 +106,7 @@ export default function SettingsPage() {
 
   const [pwSent, setPwSent] = useState(false);
   const [pwSending, setPwSending] = useState(false);
+  const [pwError, setPwError] = useState("");
 
   const [dialogue, setDialogue] = useState({ greeting_message: "", refusal_message: "" });
   const [savedDialogue, setSavedDialogue] = useState({ greeting_message: "", refusal_message: "" });
@@ -192,7 +193,7 @@ export default function SettingsPage() {
             <div className="flex gap-2">
               <StyledInput value={name} onChange={(e) => setName(e.target.value)} placeholder="店家名稱" required className="flex-1" />
               <button type="submit" disabled={nameSaving || !nameIsDirty}
-                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all"
+                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all whitespace-nowrap shrink-0"
                 style={{ background: "linear-gradient(135deg,#3b82f6,#38bdf8)" }}>
                 {nameSaving ? "儲存中…" : "儲存"}
               </button>
@@ -212,12 +213,21 @@ export default function SettingsPage() {
           {pwSent ? (
             <p className="text-sm text-emerald-600 font-medium">重設密碼信件已寄出，請查收 {user?.email}</p>
           ) : (
-            <button type="button"
-              onClick={async () => { setPwSending(true); try { await sendPasswordResetEmail(auth, user?.email!); setPwSent(true); } finally { setPwSending(false); } }}
-              disabled={pwSending}
-              className="text-sm px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50">
-              {pwSending ? "寄送中…" : "寄送重設密碼信"}
-            </button>
+            <div className="space-y-2">
+              <button type="button"
+                onClick={async () => {
+                  if (!user?.email) { setPwError("找不到登入 Email，請重新登入後再試"); return; }
+                  setPwSending(true); setPwError("");
+                  try { await sendPasswordResetEmail(auth, user.email); setPwSent(true); }
+                  catch (err: any) { setPwError(err.message || "寄送失敗，請稍後再試"); }
+                  finally { setPwSending(false); }
+                }}
+                disabled={pwSending}
+                className="text-sm px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50">
+                {pwSending ? "寄送中…" : "寄送重設密碼信"}
+              </button>
+              {pwError && <p className="text-sm text-red-600">{pwError}</p>}
+            </div>
           )}
         </Field>
       </Section>

@@ -31,6 +31,7 @@ class ChatRequest(BaseModel):
     conversation_id: str | None = None
     question: str
     end_user_id: str  # Firebase anonymous UID from frontend
+    is_playground: bool = False
 
 
 class ChatResponse(BaseModel):
@@ -127,8 +128,10 @@ async def chat(
     detail_mode: bool = False,
     session: AsyncSession = Depends(get_session),
 ):
-    # Verify tenant exists (public endpoint — no auth header, just tenant_id in body)
-    result = await session.execute(select(Tenant).where(Tenant.id == req.tenant_id))
+    # Verify tenant exists; use with_for_update when quota counting applies
+    result = await session.execute(
+        select(Tenant).where(Tenant.id == req.tenant_id).with_for_update()
+    )
     tenant = result.scalar_one_or_none()
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
@@ -139,10 +142,21 @@ async def chat(
         "您好！我是智慧客服助理，很高興為您服務。請問有什麼我可以幫助您的嗎？",
     )
 
-    # Greeting fast-path: skip RAG entirely
+    # Greeting fast-path: skip RAG entirely, but still persist to DB
     if _is_greeting(req.question):
+        conv = Conversation(
+            id=str(uuid.uuid4()),
+            tenant_id=tenant.id,
+            end_user_id=req.end_user_id,
+            is_playground=req.is_playground,
+        )
+        session.add(conv)
+        await session.flush()
+        session.add(Message(id=str(uuid.uuid4()), conversation_id=conv.id, role="user", content=req.question))
+        session.add(Message(id=str(uuid.uuid4()), conversation_id=conv.id, role="assistant", content=greeting_message))
+        await session.commit()
         return ChatResponse(
-            conversation_id="greeting",
+            conversation_id=conv.id,
             answer=greeting_message,
             was_refused=False,
             citations=[],
@@ -165,6 +179,7 @@ async def chat(
             id=str(uuid.uuid4()),
             tenant_id=tenant.id,
             end_user_id=req.end_user_id,
+            is_playground=req.is_playground,
         )
         session.add(conversation)
         await session.flush()
@@ -194,6 +209,7 @@ async def chat(
         tenant=tenant,
         history=history,
         detail_mode=detail_mode,
+        is_playground=req.is_playground,
         session=session,
     )
 
@@ -218,8 +234,8 @@ async def chat(
         .values(last_active_at=datetime.now(timezone.utc))
     )
 
-    # Log unanswered question if refused (skip in playground/detail mode)
-    if pipeline_result["was_refused"] and not detail_mode:
+    # Log unanswered question if refused (skip for playground conversations)
+    if pipeline_result["was_refused"] and not req.is_playground:
         from app.services.unanswered_tracker import track_unanswered
         await track_unanswered(req.question, tenant.id, session)
 

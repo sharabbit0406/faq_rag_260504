@@ -35,4 +35,4 @@ async def check_answerability(question: str, chunks: list[dict]) -> dict:
             verdict = "yes"  # unknown verdict → let LLM try
         return {"verdict": verdict, "reason": result.get("reason", "")}
     except Exception:
-        return {"verdict": "no", "reason": "判斷失敗"}
+        return {"verdict": "yes", "reason": "判斷服務異常，交由 LLM 嘗試回答"}

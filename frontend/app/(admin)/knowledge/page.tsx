@@ -51,11 +51,16 @@ export default function KnowledgePage() {
 
   const fetchDocs = useCallback(async () => {
     if (!tenant) return;
-    const data = await apiGet<Document[]>("/api/documents/");
-    setDocs(data);
-    data.forEach((d) => {
-      if ((d.status === "pending" || d.status === "processing") && !pollingRef.current[d.id]) startPolling(d.id);
-    });
+    try {
+      const data = await apiGet<Document[]>("/api/documents/");
+      setDocs(data);
+      data.forEach((d) => {
+        if ((d.status === "pending" || d.status === "processing") && !pollingRef.current[d.id]) startPolling(d.id);
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "未知錯誤";
+      alert(`載入文件列表失敗：${msg}`);
+    }
   }, [tenant]);
 
   useEffect(() => {

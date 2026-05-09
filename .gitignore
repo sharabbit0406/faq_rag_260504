@@ -30,3 +30,6 @@ frontend/nextjs.log
 backend/debug_t7c.py
 backend/gen_test_files.py
 backend/test_full.py
+test_*.py
+test_screenshots/
+*.log

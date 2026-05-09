@@ -37,7 +37,7 @@ ANSWER_PROMPT = """你是一個客服助理，說話像真人，不像機器人�
 1. 主要根據以下知識庫片段回答，不要憑空捏造片段中完全未提及的事實
 2. 允許對片段中的數字、條件做基本邏輯推論（例如：片段說「滿199元免運」，用戶問「買200元要運費嗎」→ 200>199，可推論免運費）
 3. 允許語意等價推論（例如：「免運費」即代表「運費為0元」，不需要片段明寫「0元」）
-4. 若片段資訊確實不足以回答，將 "cannot_answer" 設為 true，不要捏造答案
+4. 只要片段中有任何與問題相關的資訊，就必須嘗試回答，即使答案不完整。只有在片段中完全找不到任何相關資訊時，才將 "cannot_answer" 設為 true。
 5. 禁止逐字複製片段原文，要用自己的話重新說
 6. 根據用戶情境調整語氣：用戶在抱怨→先表達理解；用戶在詢問→直接回答重點
 7. 回答要簡潔，只說跟用戶當下問題最相關的，不要堆砌所有資訊
@@ -172,5 +172,5 @@ async def generate_answer(question: str, chunks: list[dict], history: list = Non
             cleaned = _CHUNK_REF.sub("", raw).strip()
             return {"answer": cleaned, "cannot_answer": False, "used_chunk_ids": []}
     except Exception as e:
-        logger.error("generate_answer failed: %s", e)
-        return {"answer": None, "cannot_answer": True, "used_chunk_ids": []}
+        logger.error("generate_answer failed: %s", e, exc_info=True)
+        return {"answer": None, "cannot_answer": True, "used_chunk_ids": [], "_error": str(e)}

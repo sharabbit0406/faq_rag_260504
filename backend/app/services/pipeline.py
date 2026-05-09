@@ -35,6 +35,7 @@ async def run_rag_pipeline(
     tenant: Tenant,
     history: list[Message],
     detail_mode: bool = False,
+    is_playground: bool = False,
     session: AsyncSession = None,
 ) -> dict:
     settings = get_settings()
@@ -60,9 +61,9 @@ async def run_rag_pipeline(
             "debug": {"source": "greeting"} if detail_mode else None,
         }
 
-    # 0b. Daily LLM quota check (skip for Playground — it doesn't persist)
+    # 0b. Daily LLM quota check (skip for Playground regardless of detail_mode)
     # Defined before transfer detection so transfer calls also deduct quota
-    if not detail_mode and session:
+    if not is_playground and session:
         limit = int(tenant_settings.get("daily_llm_limit", 100))
         if limit > 0:
             today = datetime.now(timezone.utc).date().isoformat()
@@ -224,6 +225,8 @@ async def run_rag_pipeline(
     ai_style_note = tenant_settings.get("ai_style_note", "")
     llm_result = await generate_answer(rewritten, reranked, history=history, tone=ai_tone, style_note=ai_style_note)
     if llm_result.get("cannot_answer"):
+        if debug and llm_result.get("_error"):
+            debug["answer_error"] = llm_result["_error"]
         return {
             "answer": refusal_message,
             "was_refused": True,

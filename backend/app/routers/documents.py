@@ -145,6 +145,8 @@ async def delete_document(
     doc = result.scalar_one_or_none()
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
+    if doc.status == "processing":
+        raise HTTPException(status_code=409, detail="文件正在索引中，請等待完成後再刪除")
 
     from app.services.vector_store import delete_document_vectors
     from app.models.chunk import Chunk

@@ -24,8 +24,11 @@ async def dashboard_stats(
     today_start_tw = now_tw.replace(hour=0, minute=0, second=0, microsecond=0)
     today_start = today_start_tw.astimezone(timezone.utc).replace(tzinfo=None)
 
-    # Subquery: conversation IDs belonging to this tenant
-    tenant_conv_ids = select(Conversation.id).where(Conversation.tenant_id == tenant.id)
+    # Subquery: conversation IDs belonging to this tenant, excluding playground tests
+    tenant_conv_ids = select(Conversation.id).where(
+        Conversation.tenant_id == tenant.id,
+        Conversation.is_playground != True,
+    )
 
     today_queries = await session.scalar(
         select(func.count(Message.id)).where(
