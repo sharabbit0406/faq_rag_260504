@@ -117,26 +117,31 @@ async def generate_off_topic_response(question: str) -> str:
     return await call_llm(prompt)
 
 
-TRANSFER_PROMPT = """你是一個友善的客服助理。用戶要求轉接到人工客服。
-
-可用的聯絡方式：
-{contact_info}
-
-請生成一個禮貌、自然的回應，告訴用戶如何聯絡人工客服。
-- 語氣要溫暖和專業
-- 簡潔有力，2-3 句話
-- 直接回覆即可，不要加多餘前綴或說明"""
-
-
 async def generate_transfer_response(contact_phone: str = "", contact_email: str = "") -> str:
-    contact_lines = []
-    if contact_phone:
-        contact_lines.append(f"電話：{contact_phone}")
-    if contact_email:
-        contact_lines.append(f"信箱：{contact_email}")
+    return "可點選右上方的「真人客服」按鈕，我們的客服人員將盡快為您服務。"
 
-    contact_info = "\n".join(contact_lines) if contact_lines else "（目前暫無聯絡方式）"
-    prompt = TRANSFER_PROMPT.format(contact_info=contact_info)
+
+HANDOFF_SUMMARY_PROMPT = """你是一個客服助理，請根據以下對話記錄，生成一份給真人客服人員的「轉接摘要」。
+
+對話記錄：
+{conversation}
+
+請用繁體中文生成摘要，格式如下（每項1~2行，簡潔即可）：
+【問題類型】（一句話描述用戶的主要需求或問題類型）
+【對話重點】（用戶說了什麼、AI如何回應的重點）
+【尚未解決】（哪些問題AI沒有解決或被拒答）
+【建議處理】（給客服人員的具體建議）
+
+直接輸出摘要文字即可，不要加額外說明。"""
+
+
+async def generate_handoff_summary(messages: list[dict]) -> str:
+    lines = []
+    for m in messages:
+        role_label = "用戶" if m["role"] == "user" else "AI客服"
+        lines.append(f"{role_label}：{m['content']}")
+    conversation = "\n".join(lines)
+    prompt = HANDOFF_SUMMARY_PROMPT.format(conversation=conversation)
     return await call_llm(prompt)
 
 

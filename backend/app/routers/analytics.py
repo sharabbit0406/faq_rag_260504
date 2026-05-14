@@ -42,6 +42,7 @@ async def dashboard_stats(
         select(func.count(Message.id)).where(
             Message.conversation_id.in_(tenant_conv_ids),
             Message.was_refused == True,
+            Message.refusal_source.not_in(["transfer", "quota"]) | Message.refusal_source.is_(None),
             Message.created_at >= today_start,
         )
     ) or 0

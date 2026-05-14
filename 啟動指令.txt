@@ -27,12 +27,17 @@ uv run uvicorn app.main:app --reload --port 8000`
 
 `cd "C:\Users\sha\Documents\生成式AI學習\claude code\project1\frontend"
 npm run dev`
+看到 `Ready in ...ms` 就代表前端跑起來了，然後開瀏覽器進 `http://localhost:3000`。
 
 **3. 啟動資料庫容器**
 
 確認 Docker 啟動後，在終端機執行：
-
+# 在專案根目錄執行
 `cd "c:\Users\sha\Documents\生成式AI學習\claude code\project1"
-docker compose up -d db`
 
-看到 `Ready in ...ms` 就代表前端跑起來了，然後開瀏覽器進 `http://localhost:3000`。
+docker compose up -d postgres
+
+確認 PostgreSQL 正常
+
+docker ps --filter "name=db"
+

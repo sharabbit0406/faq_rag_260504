@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useRef } from "react";
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -45,6 +45,15 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
   const [showContactMenu, setShowContactMenu] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [expandedCitation, setExpandedCitation] = useState<string | null>(null);
+
+  // Handoff modal state
+  const [showHandoffModal, setShowHandoffModal] = useState(false);
+  const [handoffSummary, setHandoffSummary] = useState("");
+  const [handoffLoading, setHandoffLoading] = useState(false);
+  const [handoffSubmitting, setHandoffSubmitting] = useState(false);
+  const [handoffDone, setHandoffDone] = useState(false);
+  const [handoffCopied, setHandoffCopied] = useState(false);
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -101,6 +110,66 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
     }
   };
 
+  const openHandoffModal = async () => {
+    setShowContactMenu(false);
+    // If no messages yet, just show contact info
+    if (messages.length === 0) {
+      setShowContactMenu(true);
+      return;
+    }
+    setHandoffDone(false);
+    setHandoffCopied(false);
+    setHandoffSummary("");
+    setShowHandoffModal(true);
+    setHandoffLoading(true);
+    try {
+      const res = await fetch(`${BASE_URL}/api/handoffs/generate-summary`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          messages: messages.map((m) => ({ role: m.role, content: m.content })),
+        }),
+      });
+      const data = await res.json();
+      setHandoffSummary(data.summary ?? "");
+    } catch {
+      setHandoffSummary("（摘要生成失敗，請手動描述您的問題）");
+    } finally {
+      setHandoffLoading(false);
+    }
+  };
+
+  const submitHandoff = async () => {
+    if (!handoffSummary.trim()) return;
+    setHandoffSubmitting(true);
+    try {
+      await fetch(`${BASE_URL}/api/handoffs/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          conversation_id: conversationId,
+          end_user_id: endUserId,
+          summary: handoffSummary,
+        }),
+      });
+      setHandoffDone(true);
+    } catch {
+      // fail silently — user can still copy
+    } finally {
+      setHandoffSubmitting(false);
+    }
+  };
+
+  const copySummary = async () => {
+    try {
+      await navigator.clipboard.writeText(handoffSummary);
+      setHandoffCopied(true);
+      setTimeout(() => setHandoffCopied(false), 2000);
+    } catch { /* ignore */ }
+  };
+
   const showSuggestions = suggestions.length > 0 && messages.length === 0;
 
   return (
@@ -120,7 +189,7 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
         {(contactEmail || contactPhone) && (
           <div style={{ position: "relative", flexShrink: 0 }}>
             <button
-              onClick={() => setShowContactMenu((v) => !v)}
+              onClick={messages.length > 0 ? openHandoffModal : () => setShowContactMenu((v) => !v)}
               className="flex items-center gap-1.5 text-xs font-semibold rounded-xl px-3 py-1.5 transition-all"
               style={{ background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe" }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#dbeafe"; }}
@@ -211,7 +280,6 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
                     ? { background: "#fff7ed", border: "1px solid #fed7aa", color: "#9a3412", borderBottomLeftRadius: "4px" }
                     : { background: "white", border: "1px solid #e2e8f0", color: "#1e293b", borderBottomLeftRadius: "4px" }
                 }>
-                {msg.was_refused && <p className="text-xs font-semibold mb-1 opacity-70">⚠ 拒答</p>}
                 <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
               </div>
 
@@ -270,8 +338,7 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
             placeholder="輸入您的問題…"
-            disabled={loading}
-            className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 outline-none py-1.5 disabled:opacity-50"
+            className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 outline-none py-1.5"
           />
           <button
             onClick={() => sendMessage()}
@@ -283,6 +350,101 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
         </div>
         <p className="text-center text-xs text-slate-300 mt-2">回答來自商家知識庫，由 AI 提供服務</p>
       </div>
+
+      {/* Handoff Modal */}
+      {showHandoffModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", padding: "0 16px" }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowHandoffModal(false); }}>
+          <div style={{
+            background: "white", borderRadius: 20, width: "100%", maxWidth: 520,
+            padding: "24px 20px 24px", boxShadow: "0 16px 48px rgba(0,0,0,0.18)",
+            maxHeight: "85vh", display: "flex", flexDirection: "column", gap: 16,
+          }}>
+
+            <div>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>轉接真人客服</h3>
+              <p style={{ fontSize: 12, color: "#94a3b8" }}>以下是您與 AI 對話的摘要，您可以編輯後送給商家，或自行複製使用。</p>
+            </div>
+
+            {handoffLoading ? (
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, padding: "24px 0" }}>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {[0, 0.18, 0.36].map((d, i) => (
+                    <span key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: "#3b82f6", display: "inline-block",
+                      animation: `bounce 1.2s ${d}s infinite`, animationTimingFunction: "ease-in-out" }} />
+                  ))}
+                </div>
+                <p style={{ fontSize: 13, color: "#94a3b8" }}>AI 正在生成摘要…</p>
+              </div>
+            ) : handoffDone ? (
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, padding: "24px 0" }}>
+                <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>✅</div>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "#16a34a" }}>已送給商家</p>
+                <p style={{ fontSize: 12, color: "#94a3b8", textAlign: "center" }}>商家收到後會盡快與您聯繫。</p>
+                {(contactEmail || contactPhone) && (
+                  <div style={{ marginTop: 8, background: "#f8fafc", borderRadius: 12, padding: "12px 16px", width: "100%" }}>
+                    <p style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", marginBottom: 8 }}>也可直接聯絡</p>
+                    {contactEmail && <p style={{ fontSize: 13, color: "#1e293b" }}>✉️ {contactEmail}</p>}
+                    {contactPhone && <p style={{ fontSize: 13, color: "#1e293b", marginTop: 4 }}>📞 {contactPhone}</p>}
+                  </div>
+                )}
+                <button onClick={() => setShowHandoffModal(false)}
+                  style={{ marginTop: 4, fontSize: 13, color: "#64748b", background: "none", border: "none", cursor: "pointer" }}>
+                  關閉
+                </button>
+              </div>
+            ) : (
+              <>
+                <textarea
+                  value={handoffSummary}
+                  onChange={(e) => setHandoffSummary(e.target.value)}
+                  rows={8}
+                  style={{
+                    flex: 1, width: "100%", borderRadius: 12, border: "1.5px solid #e2e8f0",
+                    padding: "12px 14px", fontSize: 13, color: "#1e293b", lineHeight: 1.7,
+                    resize: "vertical", outline: "none", background: "#f8fafc", fontFamily: "inherit",
+                  }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = "#38bdf8"; e.currentTarget.style.background = "white"; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.background = "#f8fafc"; }}
+                />
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    onClick={submitHandoff}
+                    disabled={handoffSubmitting || !handoffSummary.trim()}
+                    style={{
+                      flex: 1, padding: "11px 0", borderRadius: 12, border: "none", cursor: "pointer",
+                      fontSize: 13, fontWeight: 600, color: "white",
+                      background: handoffSummary.trim() && !handoffSubmitting
+                        ? "linear-gradient(135deg,#3b82f6,#38bdf8)" : "#cbd5e1",
+                      opacity: handoffSubmitting ? 0.7 : 1,
+                    }}>
+                    {handoffSubmitting ? "送出中…" : "送給商家"}
+                  </button>
+                  <button
+                    onClick={copySummary}
+                    disabled={!handoffSummary.trim()}
+                    style={{
+                      padding: "11px 16px", borderRadius: 12, border: "1.5px solid #e2e8f0",
+                      background: handoffCopied ? "#f0fdf4" : "white", cursor: "pointer",
+                      fontSize: 13, fontWeight: 600,
+                      color: handoffCopied ? "#16a34a" : "#64748b",
+                    }}>
+                    {handoffCopied ? "已複製" : "複製"}
+                  </button>
+                  <button
+                    onClick={() => setShowHandoffModal(false)}
+                    style={{
+                      padding: "11px 14px", borderRadius: 12, border: "1.5px solid #e2e8f0",
+                      background: "white", cursor: "pointer", fontSize: 13, color: "#94a3b8",
+                    }}>
+                    取消
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes bounce {

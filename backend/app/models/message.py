@@ -19,4 +19,5 @@ class Message(Base):
     retrieved_chunks: Mapped[list | None] = mapped_column(JSON, nullable=True)
     confidence_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     was_refused: Mapped[bool] = mapped_column(Boolean, default=False)
+    refusal_source: Mapped[str | None] = mapped_column(String, nullable=True)  # transfer / quota / knowledge
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

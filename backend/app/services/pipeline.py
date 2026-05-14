@@ -73,6 +73,7 @@ async def run_rag_pipeline(
                 return {
                     "answer": f"今日諮詢次數已達上限（{limit} 次），請明日再試或聯繫商家。",
                     "was_refused": True,
+                    "_source": "quota",
                     "rewritten_query": question,
                     "retrieved_chunks": [],
                     "confidence_score": 0.0,
@@ -100,6 +101,7 @@ async def run_rag_pipeline(
         return {
             "answer": transfer_message,
             "was_refused": True,
+            "_source": "transfer",
             "citations": [],
             "rewritten_query": question,
             "retrieved_chunks": [],

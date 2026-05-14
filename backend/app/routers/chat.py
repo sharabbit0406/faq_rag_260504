@@ -224,6 +224,7 @@ async def chat(
         retrieved_chunks=pipeline_result.get("retrieved_chunks"),
         confidence_score=pipeline_result.get("confidence_score"),
         was_refused=pipeline_result["was_refused"],
+        refusal_source=pipeline_result.get("_source") if pipeline_result["was_refused"] else None,
     )
     session.add(assistant_msg)
 
@@ -234,8 +235,8 @@ async def chat(
         .values(last_active_at=datetime.now(timezone.utc))
     )
 
-    # Log unanswered question if refused (skip for playground conversations)
-    if pipeline_result["was_refused"] and not req.is_playground:
+    # Log unanswered question if refused (skip for playground and transfer responses)
+    if pipeline_result["was_refused"] and not req.is_playground and pipeline_result.get("_source") != "transfer":
         from app.services.unanswered_tracker import track_unanswered
         await track_unanswered(req.question, tenant.id, session)
 

@@ -32,6 +32,7 @@ export interface DebugInfo {
   retrieved_count: number;
   reranked_chunks: { id: string; content: string; rerank_score: number }[];
   answerability: { verdict: string; reason: string };
+  source?: string;
 }
 
 export interface UnansweredQuestion {
@@ -41,6 +42,16 @@ export interface UnansweredQuestion {
   last_asked_at: string;
   status: "new" | "answered" | "ignored";
   manual_answer?: string;
+}
+
+export interface HandoffRequest {
+  id: string;
+  tenant_id: string;
+  conversation_id?: string;
+  end_user_id?: string;
+  summary: string;
+  status: "new" | "read" | "resolved";
+  created_at: string;
 }
 
 export interface DashboardStats {

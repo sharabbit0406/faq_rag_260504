@@ -66,7 +66,7 @@ with sync_playwright() as p:
 
 1. **Inspect rendered DOM**:
    ```python
-   page.screenshot(path='/tmp/inspect.png', full_page=True)
+   page.screenshot(path=str(SCREENSHOT_DIR / 'inspect.png'), full_page=True)
    content = page.content()
    page.locator('button').all()
    ```
@@ -87,6 +87,12 @@ with sync_playwright() as p:
 - Always close the browser when done
 - Use descriptive selectors: `text=`, `role=`, CSS selectors, or IDs
 - Add appropriate waits: `page.wait_for_selector()` or `page.wait_for_timeout()`
+- **Screenshots must go inside the project** — never write to `C:\tmp` or any path outside the project. Always save to `test_output/screenshots/` relative to the project root, and create the directory at script startup:
+  ```python
+  import pathlib
+  SCREENSHOT_DIR = pathlib.Path(__file__).parent / "test_output" / "screenshots"
+  SCREENSHOT_DIR.mkdir(parents=True, exist_ok=True)
+  ```
 
 ## Reference Files
 

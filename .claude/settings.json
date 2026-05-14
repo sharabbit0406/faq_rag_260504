@@ -3,10 +3,51 @@
     "allow": [
       "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\sha\\\\Documents\\\\生成式AI學習\\\\claude code\\\\project1\" | Where-Object { $_.Name -ne \".venv\" } | Select-Object Name, PSIsContainer, LastWriteTime)",
       "Read(//c/Users/sha/Documents/�ͦ���AI�ǲ�/claude code/**)",
-      "Read(//c/Users/sha/.claude/plugins/marketplaces/anthropic-agent-skills/.claude-plugin/**)"
+      "Read(//c/Users/sha/.claude/plugins/marketplaces/anthropic-agent-skills/.claude-plugin/**)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\sha\\\\Documents\\\\生成式AI學習\\\\claude code\\\\project1\" -Recurse -Depth 3)",
+      "Bash(Select-Object FullName, PSIsContainer)",
+      "Bash(Format-Table -AutoSize)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\sha\\\\Documents\\\\生成式AI學習\\\\claude code\\\\project1\" -Recurse -Depth 2)",
+      "Bash(Select-Object -Property FullName, PSIsContainer)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Bash(curl -s http://localhost:8000/api/auth/profile -X POST -H \"Content-Type: application/json\" -d \"{\\\\\"email\\\\\":\\\\\"test@test.com\\\\\",\\\\\"tenant_name\\\\\":\\\\\"\\\\\",\\\\\"firebase_uid\\\\\":\\\\\"test\\\\\"}\")",
+      "Bash(netstat -ano)",
+      "Bash(findstr :5432)",
+      "PowerShell(netsh interface ipv4 show excludedportrange protocol=tcp)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\sha\\\\Documents\\\\生成式AI學習\\\\claude code\\\\project1\\\\backend\\\\app\\\\models\" -Filter \"*.py\")",
+      "Bash(Select-Object Name)",
+      "Bash(npm run *)",
+      "Read(//c/Users/sha/.claude/**)",
+      "Edit(~/.claude/skills/organize-claude-md/**)",
+      "Bash(python .claude/skills/webapp-testing/scripts/with_server.py --help)",
+      "Bash(curl -s http://localhost:8000/health)",
+      "Bash(curl -s http://localhost:3000 -o /dev/null -w \"%{http_code}\")",
+      "Bash(curl -s http://localhost:8000/api/tenants)",
+      "Bash(curl -s \"http://localhost:8000/api/chat/widget-config/test\")",
+      "Bash(curl -s \"http://localhost:8000/api/chat/widget-config/QvdB2gXXJsXseIxqKIPKUKMUFEj1\")",
+      "Bash(curl -s \"http://localhost:8000/api/chat/widget-config/202593e1-d375-4abc-a0d0-5d63da31b72b\")",
+      "Bash(mkdir -p /c/tmp)",
+      "Bash(mkdir \"c:\\\\tmp\")",
+      "Bash(python test_chat_handoff.py)",
+      "Edit(/.claude/skills/webapp-testing/**)"
     ],
     "additionalDirectories": [
-      "c:\\Users\\sha\\Documents\\�ͦ���AI�ǲ�\\claude code\\project1\\frontend"
+      "c:\\Users\\sha\\Documents\\生成式AI學習\\claude code\\project1\\frontend",
+      "C:\\tmp",
+      "c:\\Users\\sha\\Documents\\�ͦ���AI�ǲ�\\claude code\\project1\\test_output",
+      "C:\\Users\\sha\\.claude\\plugins\\marketplaces\\anthropic-agent-skills\\skills\\webapp-testing"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"c:\\Users\\sha\\Documents\\生成式AI學習\\claude code\\project1\\frontend\" && npm run lint 2>&1 | tail -20"
+          }
+        ]
+      }
     ]
   }
 }
