@@ -10,9 +10,9 @@ $SA_EMAIL            = "faqrag-backend@$PROJECT_ID.iam.gserviceaccount.com"
 $INSTANCE_CONNECTION = "$PROJECT_ID`:$REGION`:faqrag-postgres"
 
 # ★ 填入以下變數（從步驟 2 和 Qdrant Cloud 取得）
-$DB_PASSWORD         = "CHANGE_THIS_STRONG_PASSWORD"   # 與步驟 2 相同
-$QDRANT_URL          = "https://xxx.us-east4-0.gcp.cloud.qdrant.io"  # Qdrant Cloud 提供
-$QDRANT_API_KEY      = "your-qdrant-api-key"
+$DB_PASSWORD         = "XDa8ihpLZGrIqHn4sB3W"
+$QDRANT_URL          = "https://f15fc3ee-a187-4aae-a2b7-5104cbb209cc.sa-east-1-0.aws.cloud.qdrant.io"
+$QDRANT_API_KEY      = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIiwic3ViamVjdCI6ImFwaS1rZXk6MDA4M2EwN2QtMDQ2NS00MGMwLTg5ODMtMTliZWI0NzY2MTFjIn0.e5TekDiLinN74_weR6PmItMqOs7UrSJw_wulWp_16-w"
 $GCS_BUCKET_NAME     = "your-gcs-bucket-name"
 
 $DATABASE_URL = "postgresql+asyncpg://faqrag`:$DB_PASSWORD@/faqrag`?host=/cloudsql/$INSTANCE_CONNECTION"

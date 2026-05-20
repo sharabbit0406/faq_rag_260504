@@ -10,7 +10,7 @@ $DB_NAME      = "faqrag"
 $DB_USER      = "faqrag"
 
 # ★ 請在這裡設定一個強密碼
-$DB_PASSWORD  = "CHANGE_THIS_STRONG_PASSWORD"
+$DB_PASSWORD  = "XDa8ihpLZGrIqHn4sB3W"
 
 Write-Host "=== 建立 Cloud SQL 執行個體（約 5-10 分鐘）===" -ForegroundColor Cyan
 gcloud sql instances create $INSTANCE `

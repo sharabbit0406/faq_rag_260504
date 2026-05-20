@@ -28,13 +28,13 @@ Write-Host ">>> 請先執行步驟 5a 部署 backend，取得 Backend URL 後再
 # ============================================================
 
 # ★ 填入你的 Firebase 設定（從 Firebase Console → Project Settings）
-$NEXT_PUBLIC_API_URL                       = "https://BACKEND_CLOUD_RUN_URL"  # ← 從步驟 5a 取得
-$NEXT_PUBLIC_FIREBASE_API_KEY              = "AIzaSy..."
-$NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN          = "your-project.firebaseapp.com"
-$NEXT_PUBLIC_FIREBASE_PROJECT_ID           = "your-firebase-project-id"
-$NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET       = "your-project.firebasestorage.app"
-$NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID  = "123456789"
-$NEXT_PUBLIC_FIREBASE_APP_ID               = "1:123456789:web:abc123"
+$NEXT_PUBLIC_API_URL                       = "https://faqrag-backend-l5jxtxzjha-uc.a.run.app"
+$NEXT_PUBLIC_FIREBASE_API_KEY              = "AIzaSyCZ7DSOKvu8RJ9W22HoGHWj6sfMsWHTNWE"
+$NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN          = "claude-code-faq-rag-260504.firebaseapp.com"
+$NEXT_PUBLIC_FIREBASE_PROJECT_ID           = "claude-code-faq-rag-260504"
+$NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET       = "claude-code-faq-rag-260504.firebasestorage.app"
+$NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID  = "953754688378"
+$NEXT_PUBLIC_FIREBASE_APP_ID               = "1:953754688378:web:e27015cedf16b6c78f54c3"
 
 Write-Host "=== [4b] Build Frontend ===" -ForegroundColor Cyan
 
