@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     # Google Cloud
     gcp_project_id: str
     gcp_region: str = "us-central1"
-    google_application_credentials: str  # path to gcp-key.json
+    google_application_credentials: str = ""  # path to gcp-key.json; empty = use Workload Identity on Cloud Run
 
     # Vertex AI
     vertex_ai_location: str = "us-central1"
@@ -23,7 +23,10 @@ class Settings(BaseSettings):
     llm_model: str = "gemini-2.5-flash-preview-05-20"
 
     # Firebase Admin
-    firebase_admin_credentials: str  # path to firebase-admin-key.json
+    firebase_admin_credentials: str  # path to firebase-admin-key.json OR inline JSON string
+
+    # CORS
+    cors_origins: str = "http://localhost:3000"  # comma-separated list
 
     # Qdrant
     qdrant_url: str

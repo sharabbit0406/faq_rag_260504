@@ -12,7 +12,8 @@ from app.routers import auth, documents, chat, unanswered, analytics, handoff
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = settings.google_application_credentials
+    if settings.google_application_credentials:
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = settings.google_application_credentials
     from app.auth.firebase import init_firebase
     init_firebase(settings.firebase_admin_credentials)
     await init_db()
@@ -25,9 +26,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_settings = get_settings()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://your-vercel-domain.vercel.app"],
+    allow_origins=[o.strip() for o in _settings.cors_origins.split(",")],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
