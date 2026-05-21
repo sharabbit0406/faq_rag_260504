@@ -45,6 +45,7 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
   const [showContactMenu, setShowContactMenu] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [expandedCitation, setExpandedCitation] = useState<string | null>(null);
+  const [tenantNotFound, setTenantNotFound] = useState<boolean>(false);
 
   // Handoff modal state
   const [showHandoffModal, setShowHandoffModal] = useState(false);
@@ -66,8 +67,12 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
 
   useEffect(() => {
     fetch(`${BASE_URL}/api/chat/widget-config/${tenantId}`)
-      .then((r) => r.ok ? r.json() : null)
+      .then((r) => {
+        if (r.status === 404) { setTenantNotFound(true); return null; }
+        return r.ok ? r.json() : null;
+      })
       .then((data) => {
+        if (!data) return;
         if (data?.tenant_name) setTenantName(data.tenant_name);
         if (data?.greeting_message) setGreetingMessage(data.greeting_message);
         if (data?.contact_email) setContactEmail(data.contact_email);
@@ -171,6 +176,17 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
   };
 
   const showSuggestions = suggestions.length > 0 && messages.length === 0;
+
+  if (tenantNotFound) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen gap-4"
+        style={{ fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif", background: "#f6f7fb" }}>
+        <div className="text-5xl">🔍</div>
+        <h1 className="text-lg font-semibold text-slate-700">找不到此客服頁面</h1>
+        <p className="text-sm text-slate-400">此連結無效或服務尚未開啟，請確認網址是否正確。</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen" style={{ fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif", background: "#f6f7fb" }}>
