@@ -1,11 +1,15 @@
 """
 Split parsed blocks into indexable chunks.
 - CSV/Excel rows: already 1 chunk per row (from parser)
-- PDF/TXT: fixed-size token window with overlap
+- PDF/TXT: paragraph-aware grouping — never cuts inside a paragraph.
+  Consecutive paragraphs are merged until approaching CHUNK_SIZE tokens.
+  A single oversized paragraph is split by tokens as a last resort.
 """
 import tiktoken
 
 _enc = None
+CHUNK_SIZE = 500
+OVERLAP = 50
 
 
 def _get_encoder():
@@ -15,18 +19,22 @@ def _get_encoder():
     return _enc
 
 
-def _split_by_tokens(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]:
+def _token_len(text: str) -> int:
+    return len(_get_encoder().encode(text))
+
+
+def _split_by_tokens(text: str) -> list[str]:
+    """Fallback: split a single oversized paragraph by token window."""
     enc = _get_encoder()
     tokens = enc.encode(text)
     chunks = []
     start = 0
     while start < len(tokens):
-        end = min(start + chunk_size, len(tokens))
-        chunk_tokens = tokens[start:end]
-        chunks.append(enc.decode(chunk_tokens))
+        end = min(start + CHUNK_SIZE, len(tokens))
+        chunks.append(enc.decode(tokens[start:end]))
         if end == len(tokens):
             break
-        start += chunk_size - overlap
+        start += CHUNK_SIZE - OVERLAP
     return chunks
 
 
@@ -35,16 +43,44 @@ def chunk_blocks(blocks: list[dict], file_type: str) -> list[dict]:
     Returns: [{"content": str, "metadata": dict}]
     """
     if file_type in ("csv", "xlsx", "xls"):
-        # Each row is already one chunk
         return blocks
 
-    # PDF / TXT: token-based splitting
+    # PDF / TXT: group paragraphs up to CHUNK_SIZE; never split within a paragraph.
     result = []
-    for block in blocks:
-        splits = _split_by_tokens(block["content"])
-        for i, text in enumerate(splits):
+    group_texts: list[str] = []
+    group_tokens = 0
+    group_meta: dict = {}
+
+    def flush():
+        if group_texts:
             result.append({
-                "content": text,
-                "metadata": {**block.get("metadata", {}), "sub_chunk": i},
+                "content": "\n\n".join(group_texts),
+                "metadata": group_meta,
             })
+
+    for block in blocks:
+        text = block["content"]
+        meta = block.get("metadata", {})
+        tlen = _token_len(text)
+
+        if tlen >= CHUNK_SIZE:
+            # Flush current group before handling oversized paragraph
+            flush()
+            group_texts, group_tokens, group_meta = [], 0, {}
+            # Split the big paragraph by tokens (rare fallback)
+            for i, piece in enumerate(_split_by_tokens(text)):
+                result.append({"content": piece, "metadata": {**meta, "sub_chunk": i}})
+        elif group_tokens + tlen > CHUNK_SIZE:
+            # Current group is full — flush and start fresh
+            flush()
+            group_texts = [text]
+            group_tokens = tlen
+            group_meta = meta
+        else:
+            if not group_texts:
+                group_meta = meta
+            group_texts.append(text)
+            group_tokens += tlen
+
+    flush()
     return result
