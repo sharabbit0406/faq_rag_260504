@@ -35,8 +35,8 @@ function BotAvatar({ avatarUrl }: { avatarUrl?: string }) {
     );
   }
   return (
-    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
+    <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: "#A6D8F5" }}>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="#1e293b">
         <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73A2 2 0 0 1 10 4a2 2 0 0 1 2-2zm-3 9a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm6 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>
       </svg>
     </div>
@@ -167,7 +167,7 @@ export default function WidgetPage({ params }: { params: Promise<{ tenantId: str
       style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", background: "#f6f7fb" }}
     >
       {/* Header */}
-      <div style={{ background: "linear-gradient(135deg, #3b82f6 0%, #38bdf8 100%)", flexShrink: 0 }}
+      <div style={{ background: "#A6D8F5", flexShrink: 0 }}
         className="px-4 py-3 flex items-center gap-3 shadow-sm"
       >
         {config.avatar_url ? (
@@ -252,7 +252,7 @@ export default function WidgetPage({ params }: { params: Promise<{ tenantId: str
                 className="rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed break-words shadow-sm"
                 style={
                   msg.role === "user"
-                    ? { background: "linear-gradient(135deg, #3b82f6, #38bdf8)", color: "white", borderBottomRightRadius: "4px" }
+                    ? { background: "#A6D8F5", color: "#1e293b", borderBottomRightRadius: "4px" }
                     : msg.was_refused
                     ? { background: "#fff7ed", border: "1px solid #fed7aa", color: "#9a3412", borderBottomLeftRadius: "4px" }
                     : { background: "white", color: "#1e293b", borderBottomLeftRadius: "4px", border: "1px solid #e2e8f0" }
@@ -283,12 +283,12 @@ export default function WidgetPage({ params }: { params: Promise<{ tenantId: str
                 style={{
                   background: "white",
                   border: "1px solid #e2e8f0",
-                  color: "#3b82f6",
+                  color: "#5ba8d4",
                   fontWeight: 500,
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = "#eff6ff";
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = "#93c5fd";
+                  (e.currentTarget as HTMLButtonElement).style.background = "#e8f4fc";
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = "#A6D8F5";
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLButtonElement).style.background = "white";
@@ -327,7 +327,7 @@ export default function WidgetPage({ params }: { params: Promise<{ tenantId: str
       <div className="flex-shrink-0 px-3 py-3" style={{ background: "white", borderTop: "1px solid #e2e8f0" }}>
         <div className="flex items-center gap-2 rounded-2xl px-3 py-1.5"
           style={{ background: "#f1f5f9", border: "1.5px solid transparent", transition: "border-color 0.2s" }}
-          onFocusCapture={(e) => (e.currentTarget.style.borderColor = "#38bdf8")}
+          onFocusCapture={(e) => (e.currentTarget.style.borderColor = "#A6D8F5")}
           onBlurCapture={(e) => (e.currentTarget.style.borderColor = "transparent")}
         >
           <input
@@ -345,8 +345,8 @@ export default function WidgetPage({ params }: { params: Promise<{ tenantId: str
             disabled={loading || !input.trim()}
             className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all"
             style={{
-              background: input.trim() && !loading ? "linear-gradient(135deg, #3b82f6, #38bdf8)" : "#cbd5e1",
-              color: "white",
+              background: input.trim() && !loading ? "#A6D8F5" : "#cbd5e1",
+              color: "#1e293b",
               transform: input.trim() && !loading ? "scale(1)" : "scale(0.9)",
             }}
           >

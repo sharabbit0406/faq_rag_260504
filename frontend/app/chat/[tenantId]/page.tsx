@@ -48,7 +48,7 @@ function BotAvatar({ url }: { url?: string | null }) {
   }
   return (
     <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-sm"
-      style={{ background: "linear-gradient(135deg,#3b82f6,#38bdf8)" }}>🤖</div>
+      style={{ background: "#A6D8F5" }}>🤖</div>
   );
 }
 
@@ -253,7 +253,7 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
           <img src={avatarUrl} alt="客服頭像" className="w-9 h-9 rounded-full flex-shrink-0 object-cover" style={{ border: "1.5px solid #e2e8f0" }} />
         ) : (
           <div className="w-9 h-9 rounded-full flex items-center justify-center text-lg flex-shrink-0"
-            style={{ background: "linear-gradient(135deg,#3b82f6,#38bdf8)" }}>🤖</div>
+            style={{ background: "#A6D8F5" }}>🤖</div>
         )}
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-slate-800 text-sm">{tenantName}</p>
@@ -267,9 +267,9 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
             <button
               onClick={openHandoffModal}
               className="flex items-center gap-1.5 text-xs font-semibold rounded-xl px-3 py-1.5 transition-all"
-              style={{ background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe" }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#dbeafe"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#eff6ff"; }}
+              style={{ background: "#e8f4fc", color: "#5ba8d4", border: "1px solid #A6D8F5" }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#c8e8f8"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#e8f4fc"; }}
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
@@ -335,8 +335,8 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
                 {availableInitialSuggestions.map((q) => (
                   <button key={q} onClick={() => sendMessage(q)} disabled={loading}
                     className="text-left text-xs px-3.5 py-2 rounded-xl transition-all disabled:opacity-50"
-                    style={{ background: "white", border: "1px solid #e2e8f0", color: "#3b82f6", fontWeight: 500 }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#eff6ff"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#93c5fd"; }}
+                    style={{ background: "white", border: "1px solid #e2e8f0", color: "#5ba8d4", fontWeight: 500 }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#e8f4fc"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#A6D8F5"; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "white"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#e2e8f0"; }}>
                     {q}
                   </button>
@@ -353,7 +353,7 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
               <div className="rounded-2xl px-4 py-3 text-sm shadow-sm"
                 style={
                   msg.role === "user"
-                    ? { background: "linear-gradient(135deg,#3b82f6,#38bdf8)", color: "white", borderBottomRightRadius: "4px" }
+                    ? { background: "#A6D8F5", color: "#1e293b", borderBottomRightRadius: "4px" }
                     : msg.was_refused
                     ? { background: "#fff7ed", border: "1px solid #fed7aa", color: "#9a3412", borderBottomLeftRadius: "4px" }
                     : { background: "white", border: "1px solid #e2e8f0", color: "#1e293b", borderBottomLeftRadius: "4px" }
@@ -382,8 +382,8 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
                           <span>📎</span> 來源 {ci + 1} {open ? "▲" : "▼"}
                         </button>
                         {open && (
-                          <div className="mt-1 text-xs rounded-xl px-3 py-2 text-blue-700 leading-relaxed"
-                            style={{ background: "#eff6ff", border: "1px solid #bfdbfe" }}>
+                          <div className="mt-1 text-xs rounded-xl px-3 py-2 leading-relaxed"
+                            style={{ background: "#e8f4fc", border: "1px solid #A6D8F5", color: "#5ba8d4" }}>
                             {c.excerpt}…
                           </div>
                         )}
@@ -433,7 +433,7 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
       <div className="flex-shrink-0 px-4 py-3 border-t" style={{ background: "white", borderColor: "#e2e8f0" }}>
         <div className="flex items-center gap-2 rounded-2xl px-3 py-1.5 transition-all"
           style={{ background: "#f8fafc", border: "1.5px solid #e2e8f0" }}
-          onFocusCapture={(e) => { e.currentTarget.style.borderColor = "#38bdf8"; e.currentTarget.style.background = "white"; }}
+          onFocusCapture={(e) => { e.currentTarget.style.borderColor = "#A6D8F5"; e.currentTarget.style.background = "white"; }}
           onBlurCapture={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.background = "#f8fafc"; }}>
           <input
             ref={inputRef}
@@ -448,7 +448,7 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
             onClick={() => sendMessage()}
             disabled={loading || !input.trim()}
             className="w-8 h-8 rounded-xl flex items-center justify-center text-white transition-all disabled:opacity-40 flex-shrink-0"
-            style={{ background: input.trim() && !loading ? "linear-gradient(135deg,#3b82f6,#38bdf8)" : "#cbd5e1" }}>
+            style={{ background: input.trim() && !loading ? "#A6D8F5" : "#cbd5e1", color: "#1e293b" }}>
             <SendIcon />
           </button>
         </div>
@@ -480,7 +480,7 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
               <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, padding: "24px 0" }}>
                 <div style={{ display: "flex", gap: 6 }}>
                   {[0, 0.18, 0.36].map((d, i) => (
-                    <span key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: "#3b82f6", display: "inline-block",
+                    <span key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: "#A6D8F5", display: "inline-block",
                       animation: `bounce 1.2s ${d}s infinite`, animationTimingFunction: "ease-in-out" }} />
                   ))}
                 </div>
@@ -522,7 +522,7 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
                       padding: "12px 14px", fontSize: 14, color: "#1e293b",
                       outline: "none", background: "#f8fafc", fontFamily: "inherit",
                     }}
-                    onFocus={(e) => { e.currentTarget.style.borderColor = "#38bdf8"; e.currentTarget.style.background = "white"; }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = "#A6D8F5"; e.currentTarget.style.background = "white"; }}
                     onBlur={(e) => { e.currentTarget.style.borderColor = handoffEmail.trim() ? "#e2e8f0" : "#fca5a5"; e.currentTarget.style.background = "#f8fafc"; }}
                     onKeyDown={(e) => e.key === "Enter" && handoffEmail.trim() && submitHandoff()}
                   />
@@ -537,9 +537,9 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
                     style={{
                       flex: 1, padding: "11px 0", borderRadius: 12, border: "none",
                       cursor: handoffEmail.trim() && !handoffSubmitting ? "pointer" : "not-allowed",
-                      fontSize: 13, fontWeight: 600, color: "white",
+                      fontSize: 13, fontWeight: 600, color: "#1e293b",
                       background: handoffEmail.trim() && !handoffSubmitting
-                        ? "linear-gradient(135deg,#3b82f6,#38bdf8)" : "#cbd5e1",
+                        ? "#A6D8F5" : "#cbd5e1",
                       opacity: handoffSubmitting ? 0.7 : 1,
                     }}>
                     {handoffSubmitting ? "送出中…" : "確認送出"}
@@ -575,8 +575,8 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
                     disabled={!handoffSummary.trim()}
                     style={{
                       flex: 1, padding: "11px 0", borderRadius: 12, border: "none", cursor: "pointer",
-                      fontSize: 13, fontWeight: 600, color: "white",
-                      background: handoffSummary.trim() ? "linear-gradient(135deg,#3b82f6,#38bdf8)" : "#cbd5e1",
+                      fontSize: 13, fontWeight: 600, color: "#1e293b",
+                      background: handoffSummary.trim() ? "#A6D8F5" : "#cbd5e1",
                     }}>
                     送給商家
                   </button>
