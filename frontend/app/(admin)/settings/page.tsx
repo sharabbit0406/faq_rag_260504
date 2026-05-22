@@ -1,11 +1,11 @@
 ﻿"use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
-import { apiGet, apiPatch } from "@/lib/api";
+import { apiGet, apiPatch, apiUpload } from "@/lib/api";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -92,6 +92,9 @@ function CopyRow({ label, value, href }: { label: string; value: string; href?: 
 interface TenantSettings {
   refusal_message: string; greeting_message: string;
   daily_llm_limit: number; contact_email?: string; contact_phone?: string;
+  custom_suggestions?: string[];
+  avatar_url?: string;
+  loading_text?: string;
 }
 
 export default function SettingsPage() {
@@ -108,8 +111,8 @@ export default function SettingsPage() {
   const [pwSending, setPwSending] = useState(false);
   const [pwError, setPwError] = useState("");
 
-  const [dialogue, setDialogue] = useState({ greeting_message: "", refusal_message: "" });
-  const [savedDialogue, setSavedDialogue] = useState({ greeting_message: "", refusal_message: "" });
+  const [dialogue, setDialogue] = useState({ greeting_message: "", refusal_message: "", custom_suggestions: ["", "", ""] as string[], loading_text: "" });
+  const [savedDialogue, setSavedDialogue] = useState({ greeting_message: "", refusal_message: "", custom_suggestions: ["", "", ""] as string[], loading_text: "" });
   const [dialogueLoading, setDialogueLoading] = useState(true);
   const [dialogueSaving, setDialogueSaving] = useState(false);
   const [dialogueSaved, setDialogueSaved] = useState(false);
@@ -122,6 +125,12 @@ export default function SettingsPage() {
   const [systemSaved, setSystemSaved] = useState(false);
   const [systemError, setSystemError] = useState("");
 
+  const [avatarUrl, setAvatarUrl] = useState<string>("");
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const settingsLoadedRef = useRef(false);
   const nameIsDirty = name.trim() !== savedName && !nameSaving;
   const dialogueIsDirty = JSON.stringify(dialogue) !== JSON.stringify(savedDialogue) && !dialogueSaving;
   const systemIsDirty = JSON.stringify(system) !== JSON.stringify(savedSystem) && !systemSaving;
@@ -131,17 +140,46 @@ export default function SettingsPage() {
   }, [tenant]);
 
   useEffect(() => {
-    if (!tenant) return;
+    if (!tenant || settingsLoadedRef.current) return;
+    settingsLoadedRef.current = true;
     apiGet<TenantSettings>("/api/auth/settings")
       .then((data) => {
-        const d = { greeting_message: data.greeting_message, refusal_message: data.refusal_message };
+        const saved = data.custom_suggestions ?? [];
+        const padded = [...saved, "", "", "", "", ""].slice(0, Math.max(3, saved.length));
+        const d = { greeting_message: data.greeting_message, refusal_message: data.refusal_message, custom_suggestions: padded, loading_text: data.loading_text || "" };
         const s = { daily_llm_limit: data.daily_llm_limit, contact_email: data.contact_email || "", contact_phone: data.contact_phone || "" };
         setDialogue(d); setSavedDialogue(d);
         setSystem(s); setSavedSystem(s);
+        if (data.avatar_url) setAvatarUrl(data.avatar_url);
       })
       .catch(() => {})
       .finally(() => { setDialogueLoading(false); setSystemLoading(false); });
   }, [tenant]);
+
+  async function uploadAvatar(file: File) {
+    setAvatarUploading(true); setAvatarError("");
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+      const token = await (await import("@/lib/firebase")).auth.currentUser?.getIdToken();
+      const res = await fetch(`${BASE}/api/auth/avatar`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`${res.status}: ${txt}`);
+      }
+      const data = await res.json();
+      setAvatarUrl(data.avatar_url);
+    } catch (err: any) {
+      console.error("uploadAvatar error:", err);
+      setAvatarError(err.message || "上傳失敗");
+    }
+    finally { setAvatarUploading(false); }
+  }
 
   async function saveName(e: React.FormEvent) {
     e.preventDefault();
@@ -159,7 +197,13 @@ export default function SettingsPage() {
     e.preventDefault();
     setDialogueSaving(true); setDialogueError(""); setDialogueSaved(false);
     try {
-      await apiPatch("/api/auth/settings", { greeting_message: dialogue.greeting_message, refusal_message: dialogue.refusal_message });
+      const cleanSuggestions = dialogue.custom_suggestions.filter((s) => s.trim());
+      await apiPatch("/api/auth/settings", {
+        greeting_message: dialogue.greeting_message,
+        refusal_message: dialogue.refusal_message,
+        custom_suggestions: cleanSuggestions,
+        loading_text: dialogue.loading_text,
+      });
       setSavedDialogue({ ...dialogue }); setDialogueSaved(true); setTimeout(() => setDialogueSaved(false), 3000);
     } catch (err: any) { setDialogueError(err.message || "儲存失敗"); }
     finally { setDialogueSaving(false); }
@@ -188,6 +232,33 @@ export default function SettingsPage() {
 
       {/* 商家資訊 */}
       <Section title="商家資訊">
+        {/* Avatar upload */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-slate-700">客服頭像</label>
+          <p className="text-xs text-slate-400">顯示在聊天視窗的 AI 頭像，建議使用正方形圖片。未上傳時顯示預設機器人圖示。</p>
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center"
+              style={{ background: avatarUrl ? "transparent" : "linear-gradient(135deg,#3b82f6,#38bdf8)", border: "2px solid #e2e8f0" }}>
+              {avatarUrl
+                ? <img src={avatarUrl} alt="頭像預覽" className="w-full h-full object-cover" />
+                : <span className="text-2xl">🤖</span>}
+            </div>
+            <div className="space-y-1.5">
+              <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadAvatar(f); e.target.value = ""; }} />
+              <button type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={avatarUploading}
+                className="text-sm px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors">
+                {avatarUploading ? "上傳中…" : avatarUrl ? "更換圖片" : "上傳圖片"}
+              </button>
+              <p className="text-xs text-slate-400">JPG / PNG / WebP，最大 2MB</p>
+              {avatarError && <p className="text-xs text-red-500">{avatarError}</p>}
+            </div>
+          </div>
+        </div>
+
         <form onSubmit={saveName} className="space-y-3">
           <Field label="店家名稱">
             <div className="flex gap-2">
@@ -245,6 +316,49 @@ export default function SettingsPage() {
               onChange={(e) => setDialogue((s) => ({ ...s, refusal_message: e.target.value }))}
               placeholder="抱歉，目前資料庫中找不到相關資訊…" required />
           </Field>
+
+          <Field label="引導提問泡泡" hint="歡迎語下方顯示的快速提問按鈕，最多 5 個。空白的欄位會自動忽略；未設定時系統自動從知識庫產生。">
+            <div className="space-y-2">
+              {dialogue.custom_suggestions.map((q, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 w-4 shrink-0">{i + 1}</span>
+                  <StyledInput
+                    value={q}
+                    onChange={(e) => setDialogue((s) => {
+                      const next = [...s.custom_suggestions];
+                      next[i] = e.target.value;
+                      return { ...s, custom_suggestions: next };
+                    })}
+                    placeholder={`泡泡 ${i + 1}（選填）`}
+                  />
+                  {dialogue.custom_suggestions.length > 3 && (
+                    <button type="button"
+                      onClick={() => setDialogue((s) => ({ ...s, custom_suggestions: s.custom_suggestions.filter((_, idx) => idx !== i) }))}
+                      className="text-slate-300 hover:text-red-400 transition-colors shrink-0 text-lg leading-none">
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
+              {dialogue.custom_suggestions.length < 5 && (
+                <button type="button"
+                  onClick={() => setDialogue((s) => ({ ...s, custom_suggestions: [...s.custom_suggestions, ""] }))}
+                  className="text-xs px-3 py-1.5 rounded-lg border border-dashed border-slate-300 text-slate-400 hover:border-blue-300 hover:text-blue-500 transition-colors">
+                  ＋ 新增泡泡
+                </button>
+              )}
+            </div>
+          </Field>
+
+          <Field label="等待回覆提示文字" hint="AI 思考中時顯示的文字，留空則使用預設「AI 回覆中，請稍候…」">
+            <StyledInput
+              value={dialogue.loading_text}
+              onChange={(e) => setDialogue((s) => ({ ...s, loading_text: e.target.value }))}
+              placeholder="AI 回覆中，請稍候…"
+              maxLength={80}
+            />
+          </Field>
+
           <div className="flex items-center gap-3 pt-1">
             <SaveButton loading={dialogueSaving} />
             {dialogueIsDirty && <span className="text-xs text-amber-500 font-medium">● 有未儲存的變更</span>}

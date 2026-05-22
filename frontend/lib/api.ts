@@ -43,6 +43,17 @@ export async function apiGet<T>(path: string): Promise<T> {
   return res.json();
 }
 
+export async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
+  const headers = await getAuthHeader();
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "POST",
+    headers, // no Content-Type — let browser set multipart boundary
+    body: formData,
+  });
+  if (!res.ok) throw new Error(await handleErrorResponse(res));
+  return res.json();
+}
+
 export async function apiPost<T>(path: string, body: unknown, multipart = false): Promise<T> {
   const baseHeaders: Record<string, string> = multipart
     ? {}

@@ -16,18 +16,25 @@ _Q_PATTERN = re.compile(
 
 
 def _split_by_qa(text: str) -> list[str]:
-    """Split text into Q&A segments. Falls back to paragraph split if no Q markers found."""
+    """Split text into Q&A segments. Falls back to paragraph split if no Q markers found.
+
+    Section headers (preamble before the first Q) are prepended to the first Q block
+    so each chunk carries its section context for better retrieval.
+    """
     matches = list(_Q_PATTERN.finditer(text))
     if not matches:
         return [p.strip() for p in text.split("\n\n") if p.strip()]
 
     segments = []
     preamble = text[: matches[0].start()].strip()
-    if preamble:
-        segments.append(preamble)
     for i, m in enumerate(matches):
         end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
         seg = text[m.start() : end].strip()
+        if not seg:
+            continue
+        # Attach the section header to the first Q so it carries context
+        if i == 0 and preamble:
+            seg = f"{preamble}\n\n{seg}"
         if seg:
             segments.append(seg)
     return segments

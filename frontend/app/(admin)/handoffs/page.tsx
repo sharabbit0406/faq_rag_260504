@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { apiGet, apiPatch } from "@/lib/api";
+import { apiGet, apiPatch, apiPost } from "@/lib/api";
 import type { HandoffRequest } from "@/lib/types";
 
 type StatusFilter = "all" | "new" | "read" | "resolved";
@@ -21,6 +21,10 @@ export default function HandoffsPage() {
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [saving, setSaving] = useState<string | null>(null);
+  const [answerDraft, setAnswerDraft] = useState<Record<string, string>>({});
+  const [answerSaving, setAnswerSaving] = useState<string | null>(null);
+  const [answerSaved, setAnswerSaved] = useState<string | null>(null);
+  const [kbAdding, setKbAdding] = useState<string | null>(null);
 
   const counts = {
     all: allItems.length,
@@ -54,6 +58,36 @@ export default function HandoffsPage() {
         return updated;
       });
     } finally { setSaving(null); }
+  }
+
+  async function saveSuggestedAnswer(id: string) {
+    const text = answerDraft[id] ?? "";
+    setAnswerSaving(id);
+    try {
+      await apiPatch(`/api/handoffs/${id}`, { suggested_answer: text });
+      setAnswerSaved(id);
+      setTimeout(() => setAnswerSaved(null), 2500);
+      setAllItems((prev) => prev.map((h) => h.id === id ? { ...h, suggested_answer: text } : h));
+      setItems((prev) => prev.map((h) => h.id === id ? { ...h, suggested_answer: text } : h));
+    } finally { setAnswerSaving(null); }
+  }
+
+  async function addToKb(id: string) {
+    setKbAdding(id);
+    try {
+      // Auto-save the draft first so the backend has the latest text
+      const draft = answerDraft[id];
+      if (draft !== undefined) {
+        await apiPatch(`/api/handoffs/${id}`, { suggested_answer: draft });
+        setAllItems((prev) => prev.map((h) => h.id === id ? { ...h, suggested_answer: draft } : h));
+        setItems((prev) => prev.map((h) => h.id === id ? { ...h, suggested_answer: draft } : h));
+      }
+      const updated = await apiPost<HandoffRequest>(`/api/handoffs/${id}/add-to-kb`, {});
+      setAllItems((prev) => prev.map((h) => h.id === id ? updated : h));
+      setItems((prev) => prev.map((h) => h.id === id ? updated : h));
+    } catch (err: any) {
+      alert(err.message || "加入失敗");
+    } finally { setKbAdding(null); }
   }
 
   function formatDate(iso: string) {
@@ -123,10 +157,59 @@ export default function HandoffsPage() {
 
                   {isExpanded && (
                     <div className="px-6 pb-5 pt-0 space-y-3">
+                      {h.contact_email && (
+                        <div className="flex items-center gap-2 bg-blue-50 rounded-xl px-4 py-2.5">
+                          <span className="text-base">✉️</span>
+                          <div>
+                            <p className="text-xs font-semibold text-slate-400">用戶 Email</p>
+                            <a href={`mailto:${h.contact_email}`}
+                              className="text-sm font-medium text-blue-600 hover:underline">
+                              {h.contact_email}
+                            </a>
+                          </div>
+                        </div>
+                      )}
                       <div className="bg-slate-50 rounded-xl px-4 py-3">
                         <p className="text-xs font-semibold text-slate-400 mb-2">對話摘要</p>
                         <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{h.summary}</p>
                       </div>
+
+                      {/* Suggested answer / KB expansion */}
+                      <div className="rounded-xl border border-slate-200 px-4 py-3 space-y-2" style={{ background: h.kb_added ? "#f0fdf4" : "white" }}>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-semibold text-slate-600">建議回答方式</p>
+                          {h.kb_added && <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">已加入知識庫 ✓</span>}
+                        </div>
+                        <p className="text-xs text-slate-400">填寫標準回答後，可一鍵加入知識庫，AI 下次遇到類似問題時會參考此內容。</p>
+                        <textarea
+                          rows={4}
+                          value={answerDraft[h.id] ?? (h.suggested_answer || "")}
+                          onChange={(e) => setAnswerDraft((prev) => ({ ...prev, [h.id]: e.target.value }))}
+                          disabled={!!h.kb_added}
+                          placeholder="請輸入這個問題的標準回答…"
+                          className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 resize-none outline-none disabled:bg-slate-50 disabled:text-slate-400"
+                          onFocus={(e) => { e.currentTarget.style.borderColor = "#38bdf8"; }}
+                          onBlur={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; }}
+                        />
+                        {!h.kb_added && (
+                          <div className="flex gap-2 flex-wrap">
+                            <button
+                              onClick={() => saveSuggestedAnswer(h.id)}
+                              disabled={answerSaving === h.id}
+                              className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors">
+                              {answerSaving === h.id ? "儲存中…" : answerSaved === h.id ? "已儲存 ✓" : "儲存回答"}
+                            </button>
+                            <button
+                              onClick={() => addToKb(h.id)}
+                              disabled={kbAdding === h.id || !(answerDraft[h.id] ?? h.suggested_answer)}
+                              className="text-xs px-3 py-1.5 rounded-lg text-white font-medium disabled:opacity-50 transition-colors"
+                              style={{ background: "linear-gradient(135deg,#10b981,#34d399)" }}>
+                              {kbAdding === h.id ? "加入中…" : "🧠 加入知識庫"}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
                       <div className="flex gap-2 flex-wrap">
                         {h.status === "new" && (
                           <button

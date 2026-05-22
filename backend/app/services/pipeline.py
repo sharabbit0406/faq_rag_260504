@@ -145,7 +145,7 @@ async def run_rag_pipeline(
             select(Chunk).where(Chunk.tenant_id == tenant.id)
         )
         db_chunks = result.scalars().all()
-        all_chunks = [{"id": c.id, "content": c.content, "document_id": c.document_id} for c in db_chunks]
+        all_chunks = [{"id": c.id, "content": c.content, "parent_content": c.parent_content or c.content, "document_id": c.document_id} for c in db_chunks]
 
         # Inject answered manual Q&A as synthetic chunks so BM25 can retrieve them
         manual_result = await session.execute(
@@ -227,8 +227,10 @@ async def run_rag_pipeline(
     ai_style_note = tenant_settings.get("ai_style_note", "")
     llm_result = await generate_answer(rewritten, reranked, history=history, tone=ai_tone, style_note=ai_style_note)
     if llm_result.get("cannot_answer"):
-        if debug and llm_result.get("_error"):
-            debug["answer_error"] = llm_result["_error"]
+        if debug:
+            debug["llm_cannot_answer"] = True
+            if llm_result.get("_error"):
+                debug["answer_error"] = llm_result["_error"]
         return {
             "answer": refusal_message,
             "was_refused": True,

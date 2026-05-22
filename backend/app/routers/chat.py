@@ -49,6 +49,8 @@ class WidgetConfig(BaseModel):
     contact_phone: str | None = None
     support_cta: str = "聯繫人工客服"
     greeting_message: str = "您好！我是智慧客服助理，很高興為您服務。請問有什麼我可以幫助您的嗎？"
+    avatar_url: str | None = None
+    loading_text: str = "AI 回覆中，請稍候…"
 
 
 @router.get("/widget-config/{tenant_id}", response_model=WidgetConfig)
@@ -71,6 +73,8 @@ async def get_widget_config(
             "greeting_message",
             "您好！我是智慧客服助理，很高興為您服務。請問有什麼我可以幫助您的嗎？",
         ),
+        avatar_url=settings.get("avatar_url") or None,
+        loading_text=settings.get("loading_text") or "AI 回覆中，請稍候…",
     )
 
 
@@ -85,6 +89,12 @@ async def get_suggestions(
         raise HTTPException(status_code=404, detail="Tenant not found")
 
     settings = tenant.settings or {}
+
+    # Merchant-defined suggestions take priority over AI-generated ones
+    custom = settings.get("custom_suggestions")
+    if custom and isinstance(custom, list) and any(s.strip() for s in custom):
+        return {"questions": [s for s in custom if s.strip()]}
+
     cache = settings.get("suggested_questions")
 
     # Return cached if < 24 hours old
@@ -119,6 +129,19 @@ async def get_suggestions(
     )
     await session.commit()
 
+    return {"questions": questions}
+
+
+class FollowUpRequest(BaseModel):
+    question: str
+    answer: str
+
+
+@router.post("/follow-up-suggestions")
+async def get_follow_up_suggestions(req: FollowUpRequest):
+    """Generate contextual follow-up questions based on the last Q&A exchange."""
+    from app.services.llm import generate_follow_up_questions
+    questions = await generate_follow_up_questions(req.question, req.answer)
     return {"questions": questions}
 
 

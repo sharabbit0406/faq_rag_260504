@@ -37,7 +37,10 @@ ANSWER_PROMPT = """你是一個客服助理，說話像真人，不像機器人�
 1. 主要根據以下知識庫片段回答，不要憑空捏造片段中完全未提及的事實
 2. 允許對片段中的數字、條件做基本邏輯推論（例如：片段說「滿199元免運」，用戶問「買200元要運費嗎」→ 200>199，可推論免運費）
 3. 允許語意等價推論（例如：「免運費」即代表「運費為0元」，不需要片段明寫「0元」）
-4. 只要片段中有任何與問題相關的資訊，就必須嘗試回答，即使答案不完整。只有在片段中完全找不到任何相關資訊時，才將 "cannot_answer" 設為 true。
+4. 只要片段中有任何與問題相關的資訊，就必須嘗試回答，即使答案不完整。以下情況都不可將 "cannot_answer" 設為 true：
+   - 片段提到有網站、社群、個人頁面 → 引導用戶前往那裡找
+   - 片段有部分資訊但不完整 → 回答已知的，並說明可能需要進一步確認
+   - 只有在片段中對問題的主題完全隻字未提時，才將 "cannot_answer" 設為 true。
 5. 禁止逐字複製片段原文，要用自己的話重新說
 6. 根據用戶情境調整語氣：用戶在抱怨→先表達理解；用戶在詢問→直接回答重點
 7. 回答要簡潔，只說跟用戶當下問題最相關的，不要堆砌所有資訊
@@ -91,6 +94,33 @@ SUGGESTIONS_PROMPT = """你是一個智慧客服系統。根據以下知識庫�
 
 請以 JSON 格式回答：
 {{"questions": ["問題1", "問題2", "問題3", "問題4"]}}"""
+
+
+FOLLOW_UP_PROMPT = """你是一個智慧客服系統。根據以下剛發生的問答，生成 3 個自然的後續追問建議，引導用戶深挖相關細節或探索相關新話題。
+
+用戶問：{question}
+AI 回答：{answer}
+
+要求：
+1. 自然口語化，像真實用戶會繼續問的方式
+2. 可以深挖剛才話題的細節，或開啟相關但不同的話題
+3. 每題 15 字以內，簡潔明瞭
+4. 用繁體中文
+5. 三個問題方向不同，不要重複
+
+請以 JSON 格式回答：
+{{"questions": ["問題1", "問題2", "問題3"]}}"""
+
+
+async def generate_follow_up_questions(question: str, answer: str) -> list[str]:
+    prompt = FOLLOW_UP_PROMPT.format(question=question[:300], answer=answer[:600])
+    try:
+        raw = await call_llm(prompt, json_mode=True)
+        result = json.loads(raw)
+        qs = result.get("questions", [])
+        return [q for q in qs if isinstance(q, str) and q.strip()][:3]
+    except Exception:
+        return []
 
 
 async def generate_suggested_questions(chunks: list[dict]) -> list[str]:
@@ -147,7 +177,7 @@ async def generate_handoff_summary(messages: list[dict]) -> str:
 
 async def generate_answer(question: str, chunks: list[dict], history: list = None, tone: str = "friendly", style_note: str = "") -> dict:
     chunks_text = "\n\n".join(
-        f"[chunk_id: {c['id']}]\n{c['content']}" for c in chunks
+        f"[chunk_id: {c['id']}]\n{c.get('parent_content') or c['content']}" for c in chunks
     )
     if history:
         history_lines = "\n".join(

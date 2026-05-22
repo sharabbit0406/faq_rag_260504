@@ -51,7 +51,7 @@ async def index_document(doc_id: str, content: bytes, filename: str, file_type: 
                 await session.commit()
                 return
 
-            # Embed (batched)
+            # Embed child chunks (small, precise for retrieval)
             texts = [c["content"] for c in chunks]
             embeddings = await embed_texts(texts)
 
@@ -63,9 +63,11 @@ async def index_document(doc_id: str, content: bytes, filename: str, file_type: 
             db_chunks = []
             for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
                 chunk_id = str(uuid.uuid4())
+                parent_content = chunk.get("parent_content") or chunk["content"]
                 chunk_records.append({
                     "id": chunk_id,
                     "content": chunk["content"],
+                    "parent_content": parent_content,
                     "embedding": embedding,
                     "document_id": doc_id,
                     "metadata": chunk.get("metadata", {}),
@@ -75,6 +77,7 @@ async def index_document(doc_id: str, content: bytes, filename: str, file_type: 
                     document_id=doc_id,
                     tenant_id=tenant_id,
                     content=chunk["content"],
+                    parent_content=parent_content,
                     chunk_index=i,
                     qdrant_point_id=chunk_id,
                     metadata_=chunk.get("metadata", {}),

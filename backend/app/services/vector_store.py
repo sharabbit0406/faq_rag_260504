@@ -57,6 +57,7 @@ async def upsert_chunks(chunks: list[dict], tenant_id: str):
                 "tenant_id": tenant_id,
                 "document_id": c["document_id"],
                 "content": c["content"],
+                "parent_content": c.get("parent_content") or c["content"],
                 **c.get("metadata", {}),
             },
         )
@@ -80,6 +81,7 @@ async def search_vectors(query_embedding: list[float], tenant_id: str, top_k: in
             "id": str(r.id),
             "score": r.score,
             "content": r.payload.get("content", ""),
+            "parent_content": r.payload.get("parent_content") or r.payload.get("content", ""),
             "document_id": r.payload.get("document_id", ""),
             "payload": r.payload,
         }

@@ -50,6 +50,9 @@ export interface HandoffRequest {
   conversation_id?: string;
   end_user_id?: string;
   summary: string;
+  contact_email?: string | null;
+  suggested_answer?: string | null;
+  kb_added?: boolean;
   status: "new" | "read" | "resolved";
   created_at: string;
 }

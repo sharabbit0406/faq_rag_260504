@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 import uuid
@@ -106,6 +106,8 @@ class SettingsRequest(BaseModel):
     contact_phone: str | None = None
     ai_tone: str | None = None        # "formal" | "friendly" | "lively"
     ai_style_note: str | None = None  # free-text style instruction
+    custom_suggestions: list[str] | None = None  # merchant-defined greeting bubbles
+    loading_text: str | None = None              # chat widget loading message
 
 
 @router.get("/settings")
@@ -119,6 +121,9 @@ async def get_settings(tenant: Tenant = Depends(get_current_tenant)):
         "contact_phone": s.get("contact_phone", ""),
         "ai_tone": s.get("ai_tone", "friendly"),
         "ai_style_note": s.get("ai_style_note", ""),
+        "custom_suggestions": s.get("custom_suggestions", []),
+        "avatar_url": s.get("avatar_url", ""),
+        "loading_text": s.get("loading_text", ""),
     }
 
 
@@ -157,6 +162,11 @@ async def update_settings(
         current["ai_tone"] = req.ai_tone
     if req.ai_style_note is not None:
         current["ai_style_note"] = req.ai_style_note
+    if req.custom_suggestions is not None:
+        filtered = [s.strip() for s in req.custom_suggestions if s.strip()][:5]
+        current["custom_suggestions"] = filtered
+    if req.loading_text is not None:
+        current["loading_text"] = req.loading_text.strip()
     await session.execute(
         update(Tenant).where(Tenant.id == tenant.id).values(settings=current)
     )
@@ -169,4 +179,34 @@ async def update_settings(
         "contact_phone": current.get("contact_phone", ""),
         "ai_tone": current.get("ai_tone", "friendly"),
         "ai_style_note": current.get("ai_style_note", ""),
+        "custom_suggestions": current.get("custom_suggestions", []),
+        "avatar_url": current.get("avatar_url", ""),
+        "loading_text": current.get("loading_text", ""),
     }
+
+
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+EXT_MAP = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif"}
+
+
+@router.post("/avatar")
+async def upload_avatar(
+    file: UploadFile = File(...),
+    tenant: Tenant = Depends(get_current_tenant),
+    session: AsyncSession = Depends(get_session),
+):
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="只接受 JPG / PNG / WebP / GIF")
+    content = await file.read()
+    if len(content) > 2 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="圖片不可超過 2MB")
+
+    import base64
+    b64 = base64.b64encode(content).decode()
+    url = f"data:{file.content_type};base64,{b64}"
+
+    current = dict(tenant.settings or {})
+    current["avatar_url"] = url
+    await session.execute(update(Tenant).where(Tenant.id == tenant.id).values(settings=current))
+    await session.commit()
+    return {"avatar_url": url}

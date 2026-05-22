@@ -12,6 +12,7 @@ class Chunk(Base):
     document_id: Mapped[str] = mapped_column(String, ForeignKey("documents.id"), nullable=False)
     tenant_id: Mapped[str] = mapped_column(String, ForeignKey("tenants.id"), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    parent_content: Mapped[str | None] = mapped_column(Text, nullable=True)
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
     qdrant_point_id: Mapped[str] = mapped_column(String, nullable=False)
     # e.g. {"question": "...", "source_row": 3} for CSV; {"page": 2} for PDF

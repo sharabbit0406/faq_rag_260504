@@ -24,7 +24,27 @@ function SendIcon() {
   );
 }
 
-function BotAvatar() {
+function LoadingDots() {
+  return (
+    <span style={{ display: "inline-flex", gap: 2, marginLeft: 4, verticalAlign: "middle" }}>
+      {[0, 0.2, 0.4].map((d, i) => (
+        <span key={i} style={{
+          width: 4, height: 4, borderRadius: "50%", background: "#94a3b8", display: "inline-block",
+          animation: `bounce 1.2s ${d}s ease-in-out infinite`,
+        }} />
+      ))}
+    </span>
+  );
+}
+
+function BotAvatar({ url }: { url?: string | null }) {
+  if (url) {
+    return (
+      <img src={url} alt="客服頭像"
+        className="w-7 h-7 rounded-full flex-shrink-0 mt-0.5 object-cover"
+        style={{ border: "1.5px solid #e2e8f0" }} />
+    );
+  }
   return (
     <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-sm"
       style={{ background: "linear-gradient(135deg,#3b82f6,#38bdf8)" }}>🤖</div>
@@ -42,8 +62,12 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
   const [greetingMessage, setGreetingMessage] = useState<string>("您好！我是智慧客服助理，可以回答關於本服務的相關問題。");
   const [contactEmail, setContactEmail] = useState<string | null>(null);
   const [contactPhone, setContactPhone] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [loadingText, setLoadingText] = useState<string>("AI 回覆中，請稍候…");
   const [showContactMenu, setShowContactMenu] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [clickedSuggestions, setClickedSuggestions] = useState<Set<string>>(new Set());
+  const [followUpSuggestions, setFollowUpSuggestions] = useState<string[]>([]);
   const [expandedCitation, setExpandedCitation] = useState<string | null>(null);
   const [tenantNotFound, setTenantNotFound] = useState<boolean>(false);
 
@@ -54,6 +78,9 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
   const [handoffSubmitting, setHandoffSubmitting] = useState(false);
   const [handoffDone, setHandoffDone] = useState(false);
   const [handoffCopied, setHandoffCopied] = useState(false);
+  // Email step state
+  const [showEmailStep, setShowEmailStep] = useState(false);
+  const [handoffEmail, setHandoffEmail] = useState("");
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -77,23 +104,28 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
         if (data?.greeting_message) setGreetingMessage(data.greeting_message);
         if (data?.contact_email) setContactEmail(data.contact_email);
         if (data?.contact_phone) setContactPhone(data.contact_phone);
+        if (data?.avatar_url) setAvatarUrl(data.avatar_url);
+        if (data?.loading_text) setLoadingText(data.loading_text);
       }).catch(() => {});
 
     fetch(`${BASE_URL}/api/chat/suggestions?tenant_id=${tenantId}`)
       .then((r) => r.ok ? r.json() : null)
-      .then((data) => { if (data?.questions?.length) setSuggestions(data.questions.slice(0, 4)); })
+      .then((data) => { if (data?.questions?.length) setSuggestions(data.questions.slice(0, 6)); })
       .catch(() => {});
   }, [tenantId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+  }, [messages, loading, followUpSuggestions]);
 
   const sendMessage = async (text?: string) => {
     const question = (text ?? input).trim();
     if (!question || loading || !endUserId) return;
     setInput("");
-    setSuggestions([]);
+    setFollowUpSuggestions([]);
+    if (text) {
+      setClickedSuggestions((prev) => new Set([...prev, text]));
+    }
     setMessages((prev) => [...prev, { role: "user", content: question }]);
     setLoading(true);
     inputRef.current?.focus();
@@ -108,6 +140,18 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
       if (!res.ok) throw new Error(data.detail || "請求失敗");
       if (data.conversation_id && data.conversation_id !== "greeting") setConversationId(data.conversation_id);
       setMessages((prev) => [...prev, { role: "assistant", content: data.answer, was_refused: data.was_refused, citations: data.citations }]);
+
+      // Generate LLM-based follow-up suggestions (fire-and-forget, non-blocking)
+      if (!data.was_refused) {
+        fetch(`${BASE_URL}/api/chat/follow-up-suggestions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question, answer: data.answer }),
+        })
+          .then((r) => r.ok ? r.json() : null)
+          .then((d) => { if (d?.questions?.length) setFollowUpSuggestions(d.questions.slice(0, 3)); })
+          .catch(() => {});
+      }
     } catch (err: any) {
       setMessages((prev) => [...prev, { role: "assistant", content: `錯誤：${err.message}` }]);
     } finally {
@@ -117,15 +161,18 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
 
   const openHandoffModal = async () => {
     setShowContactMenu(false);
-    // If no messages yet, just show contact info
-    if (messages.length === 0) {
-      setShowContactMenu(true);
-      return;
-    }
     setHandoffDone(false);
     setHandoffCopied(false);
     setHandoffSummary("");
+    setShowEmailStep(false);
+    setHandoffEmail("");
     setShowHandoffModal(true);
+
+    if (messages.length === 0) {
+      // No conversation yet — let user type their issue manually
+      return;
+    }
+
     setHandoffLoading(true);
     try {
       const res = await fetch(`${BASE_URL}/api/handoffs/generate-summary`, {
@@ -145,8 +192,14 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
     }
   };
 
-  const submitHandoff = async () => {
+  // Step 1: show email input
+  const requestEmail = () => {
     if (!handoffSummary.trim()) return;
+    setShowEmailStep(true);
+  };
+
+  // Step 2: actually submit with email
+  const submitHandoff = async () => {
     setHandoffSubmitting(true);
     try {
       await fetch(`${BASE_URL}/api/handoffs/submit`, {
@@ -157,6 +210,7 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
           conversation_id: conversationId,
           end_user_id: endUserId,
           summary: handoffSummary,
+          contact_email: handoffEmail.trim() || null,
         }),
       });
       setHandoffDone(true);
@@ -175,7 +229,8 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
     } catch { /* ignore */ }
   };
 
-  const showSuggestions = suggestions.length > 0 && messages.length === 0;
+  const showInitialSuggestions = suggestions.length > 0 && messages.length === 0;
+  const availableInitialSuggestions = suggestions.filter((s) => !clickedSuggestions.has(s));
 
   if (tenantNotFound) {
     return (
@@ -193,8 +248,12 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
       {/* Header */}
       <div className="flex-shrink-0 px-5 py-3.5 flex items-center gap-3 border-b"
         style={{ background: "white", borderColor: "#e2e8f0" }}>
-        <div className="w-9 h-9 rounded-full flex items-center justify-center text-lg flex-shrink-0"
-          style={{ background: "linear-gradient(135deg,#3b82f6,#38bdf8)" }}>🤖</div>
+        {avatarUrl ? (
+          <img src={avatarUrl} alt="客服頭像" className="w-9 h-9 rounded-full flex-shrink-0 object-cover" style={{ border: "1.5px solid #e2e8f0" }} />
+        ) : (
+          <div className="w-9 h-9 rounded-full flex items-center justify-center text-lg flex-shrink-0"
+            style={{ background: "linear-gradient(135deg,#3b82f6,#38bdf8)" }}>🤖</div>
+        )}
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-slate-800 text-sm">{tenantName}</p>
           <div className="flex items-center gap-1.5 mt-0.5">
@@ -205,7 +264,7 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
         {(contactEmail || contactPhone) && (
           <div style={{ position: "relative", flexShrink: 0 }}>
             <button
-              onClick={messages.length > 0 ? openHandoffModal : () => setShowContactMenu((v) => !v)}
+              onClick={openHandoffModal}
               className="flex items-center gap-1.5 text-xs font-semibold rounded-xl px-3 py-1.5 transition-all"
               style={{ background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe" }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#dbeafe"; }}
@@ -227,26 +286,28 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
                 }}>
                   <p style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", padding: "11px 16px 6px", letterSpacing: "0.5px" }}>聯絡真人客服</p>
                   {contactEmail && (
-                    <a href={`mailto:${contactEmail}`}
-                      style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", textDecoration: "none", color: "#1e293b", fontSize: 13 }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "#f8fafc"; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
-                      onClick={() => setShowContactMenu(false)}
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(contactEmail).catch(() => {}); setShowContactMenu(false); }}
+                      style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", width: "100%", background: "none", border: "none", cursor: "pointer", color: "#1e293b", fontSize: 13, textAlign: "left" }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                      title="點擊複製 Email"
                     >
                       <span style={{ width: 30, height: 30, borderRadius: 8, background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 15 }}>✉️</span>
                       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{contactEmail}</span>
-                    </a>
+                    </button>
                   )}
                   {contactPhone && (
-                    <a href={`tel:${contactPhone}`}
-                      style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", textDecoration: "none", color: "#1e293b", fontSize: 13 }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "#f8fafc"; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
-                      onClick={() => setShowContactMenu(false)}
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(contactPhone).catch(() => {}); setShowContactMenu(false); }}
+                      style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", width: "100%", background: "none", border: "none", cursor: "pointer", color: "#1e293b", fontSize: 13, textAlign: "left" }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                      title="點擊複製電話"
                     >
                       <span style={{ width: 30, height: 30, borderRadius: 8, background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 15 }}>📞</span>
                       <span>{contactPhone}</span>
-                    </a>
+                    </button>
                   )}
                   <div style={{ height: 6 }} />
                 </div>
@@ -262,15 +323,15 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
 
         {/* Greeting */}
         <div className="flex gap-2.5">
-          <BotAvatar />
+          <BotAvatar url={avatarUrl} />
           <div className="max-w-[80%]">
             <div className="rounded-2xl rounded-bl-sm px-4 py-3 text-sm text-slate-800 shadow-sm"
               style={{ background: "white", border: "1px solid #e2e8f0" }}>
               <p className="whitespace-pre-wrap">{greetingMessage}</p>
             </div>
-            {showSuggestions && (
+            {showInitialSuggestions && availableInitialSuggestions.length > 0 && (
               <div className="mt-3 flex flex-col gap-2">
-                {suggestions.map((q) => (
+                {availableInitialSuggestions.map((q) => (
                   <button key={q} onClick={() => sendMessage(q)} disabled={loading}
                     className="text-left text-xs px-3.5 py-2 rounded-xl transition-all disabled:opacity-50"
                     style={{ background: "white", border: "1px solid #e2e8f0", color: "#3b82f6", fontWeight: 500 }}
@@ -286,7 +347,7 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
 
         {messages.map((msg, i) => (
           <div key={i} className={`flex gap-2.5 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
-            {msg.role === "assistant" && <BotAvatar />}
+            {msg.role === "assistant" && <BotAvatar url={avatarUrl} />}
             <div className={`max-w-[80%] flex flex-col gap-1.5 ${msg.role === "user" ? "items-end" : "items-start"}`}>
               <div className="rounded-2xl px-4 py-3 text-sm shadow-sm"
                 style={
@@ -313,7 +374,7 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
                         {open && (
                           <div className="mt-1 text-xs rounded-xl px-3 py-2 text-blue-700 leading-relaxed"
                             style={{ background: "#eff6ff", border: "1px solid #bfdbfe" }}>
-                            {c.excerpt}
+                            {c.excerpt}…
                           </div>
                         )}
                       </div>
@@ -321,19 +382,36 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
                   })}
                 </div>
               )}
+
+              {/* Follow-up suggestion bubbles — only after last assistant message */}
+              {msg.role === "assistant" && i === messages.length - 1 && !loading && followUpSuggestions.length > 0 && (
+                <div className="mt-1 flex flex-col gap-2 w-full">
+                  <p className="text-xs text-slate-400 px-0.5">您可能還想問：</p>
+                  {followUpSuggestions.map((q) => (
+                    <button key={q} onClick={() => sendMessage(q)} disabled={loading}
+                      className="text-left text-xs px-3.5 py-2 rounded-xl transition-all disabled:opacity-50"
+                      style={{ background: "white", border: "1px solid #e2e8f0", color: "#3b82f6", fontWeight: 500 }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#eff6ff"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#93c5fd"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "white"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#e2e8f0"; }}>
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ))}
 
         {loading && (
-          <div className="flex gap-2.5">
-            <BotAvatar />
-            <div className="rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm" style={{ background: "white", border: "1px solid #e2e8f0" }}>
-              <div className="flex gap-1 items-center h-4">
-                {[0, 0.18, 0.36].map((d, idx) => (
-                  <span key={idx} className="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block"
-                    style={{ animation: `bounce 1.2s ${d}s infinite`, animationTimingFunction: "ease-in-out" }} />
-                ))}
+          <div className="flex gap-2.5" style={{ animation: "fadeIn 0.4s ease" }}>
+            <BotAvatar url={avatarUrl} />
+            <div className="rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm max-w-[80%]" style={{ background: "white", border: "1px solid #e2e8f0" }}>
+<div className="flex items-center gap-2">
+                <span style={{ fontSize: 16, animation: "pulse 1.2s ease-in-out infinite" }}>🧠</span>
+                <p className="text-sm text-slate-500 leading-relaxed">
+                  {loadingText}
+                  <LoadingDots />
+                </p>
               </div>
             </div>
           </div>
@@ -379,7 +457,13 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
 
             <div>
               <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>轉接真人客服</h3>
-              <p style={{ fontSize: 12, color: "#94a3b8" }}>以下是您與 AI 對話的摘要，您可以編輯後送給商家，或自行複製使用。</p>
+              <p style={{ fontSize: 12, color: "#94a3b8" }}>
+                {showEmailStep
+                  ? "請留下您的 Email，商家回覆時會主動聯絡您。"
+                  : messages.length === 0
+                  ? "請描述您的問題，我們會轉給商家處理。"
+                  : "以下是您與 AI 對話的摘要，您可以編輯後送給商家，或自行複製使用。"}
+              </p>
             </div>
 
             {handoffLoading ? (
@@ -409,7 +493,59 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
                   關閉
                 </button>
               </div>
+            ) : showEmailStep ? (
+              /* ── Email step ── */
+              <>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: "#1e293b" }}>
+                    Email <span style={{ color: "#ef4444" }}>*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={handoffEmail}
+                    onChange={(e) => setHandoffEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    autoFocus
+                    style={{
+                      width: "100%", borderRadius: 12,
+                      border: `1.5px solid ${handoffEmail.trim() ? "#e2e8f0" : "#fca5a5"}`,
+                      padding: "12px 14px", fontSize: 14, color: "#1e293b",
+                      outline: "none", background: "#f8fafc", fontFamily: "inherit",
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = "#38bdf8"; e.currentTarget.style.background = "white"; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = handoffEmail.trim() ? "#e2e8f0" : "#fca5a5"; e.currentTarget.style.background = "#f8fafc"; }}
+                    onKeyDown={(e) => e.key === "Enter" && handoffEmail.trim() && submitHandoff()}
+                  />
+                  {!handoffEmail.trim() && (
+                    <p style={{ fontSize: 11, color: "#ef4444" }}>請填寫 Email，商家才能回覆您。</p>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    onClick={submitHandoff}
+                    disabled={handoffSubmitting || !handoffEmail.trim()}
+                    style={{
+                      flex: 1, padding: "11px 0", borderRadius: 12, border: "none",
+                      cursor: handoffEmail.trim() && !handoffSubmitting ? "pointer" : "not-allowed",
+                      fontSize: 13, fontWeight: 600, color: "white",
+                      background: handoffEmail.trim() && !handoffSubmitting
+                        ? "linear-gradient(135deg,#3b82f6,#38bdf8)" : "#cbd5e1",
+                      opacity: handoffSubmitting ? 0.7 : 1,
+                    }}>
+                    {handoffSubmitting ? "送出中…" : "確認送出"}
+                  </button>
+                  <button
+                    onClick={() => setShowEmailStep(false)}
+                    style={{
+                      padding: "11px 14px", borderRadius: 12, border: "1.5px solid #e2e8f0",
+                      background: "white", cursor: "pointer", fontSize: 13, color: "#94a3b8",
+                    }}>
+                    返回
+                  </button>
+                </div>
+              </>
             ) : (
+              /* ── Summary edit step ── */
               <>
                 <textarea
                   value={handoffSummary}
@@ -425,16 +561,14 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
                 />
                 <div style={{ display: "flex", gap: 8 }}>
                   <button
-                    onClick={submitHandoff}
-                    disabled={handoffSubmitting || !handoffSummary.trim()}
+                    onClick={requestEmail}
+                    disabled={!handoffSummary.trim()}
                     style={{
                       flex: 1, padding: "11px 0", borderRadius: 12, border: "none", cursor: "pointer",
                       fontSize: 13, fontWeight: 600, color: "white",
-                      background: handoffSummary.trim() && !handoffSubmitting
-                        ? "linear-gradient(135deg,#3b82f6,#38bdf8)" : "#cbd5e1",
-                      opacity: handoffSubmitting ? 0.7 : 1,
+                      background: handoffSummary.trim() ? "linear-gradient(135deg,#3b82f6,#38bdf8)" : "#cbd5e1",
                     }}>
-                    {handoffSubmitting ? "送出中…" : "送給商家"}
+                    送給商家
                   </button>
                   <button
                     onClick={copySummary}
@@ -466,6 +600,14 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
         @keyframes bounce {
           0%,100%{transform:translateY(0);opacity:.5}
           50%{transform:translateY(-4px);opacity:1}
+        }
+        @keyframes fadeIn {
+          from{opacity:0;transform:translateY(4px)}
+          to{opacity:1;transform:translateY(0)}
+        }
+@keyframes pulse {
+          0%,100%{transform:scale(1);opacity:0.8}
+          50%{transform:scale(1.2);opacity:1}
         }
       `}</style>
     </div>

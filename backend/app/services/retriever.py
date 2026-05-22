@@ -45,8 +45,13 @@ async def hybrid_retrieve(query: str, tenant_id: str, all_chunks: list[dict], to
         bm25 = BM25Okapi(corpus)
         scores = bm25.get_scores(_tokenize(query))
         indexed = sorted(
-            [{"id": c["id"], "content": c["content"], "document_id": c.get("document_id", ""), "score": float(s)}
-             for c, s in zip(all_chunks, scores)],
+            [{
+                "id": c["id"],
+                "content": c["content"],
+                "parent_content": c.get("parent_content") or c["content"],
+                "document_id": c.get("document_id", ""),
+                "score": float(s),
+            } for c, s in zip(all_chunks, scores)],
             key=lambda x: x["score"],
             reverse=True,
         )[:top_k]

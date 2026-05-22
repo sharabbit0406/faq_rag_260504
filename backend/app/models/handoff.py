@@ -13,5 +13,8 @@ class HandoffRequest(Base):
     conversation_id: Mapped[str | None] = mapped_column(String, nullable=True)
     end_user_id: Mapped[str | None] = mapped_column(String, nullable=True)
     summary: Mapped[str] = mapped_column(Text, nullable=False)
+    contact_email: Mapped[str | None] = mapped_column(String, nullable=True)
+    suggested_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
+    kb_added: Mapped[bool] = mapped_column(default=False)
     status: Mapped[str] = mapped_column(String, default="new")  # new / read / resolved
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

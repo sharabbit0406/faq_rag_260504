@@ -38,7 +38,7 @@ class Settings(BaseSettings):
 
     # RAG settings
     retrieval_top_k: int = 20
-    rerank_top_n: int = 5
+    rerank_top_n: int = 8
     bm25_weight: float = 0.3
     vector_weight: float = 0.7
 
