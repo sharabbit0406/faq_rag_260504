@@ -245,19 +245,19 @@ export default function ChatWidget({ tenantId }: { tenantId: string }) {
   return (
     <div className="flex flex-col h-screen" style={{ fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif", background: "#f6f7fb" }}>
       {/* Header */}
-      <div className="flex-shrink-0 px-5 py-3.5 flex items-center gap-3 border-b"
+      <div className="flex-shrink-0 px-4 py-2 flex items-center gap-2.5 border-b"
         style={{ background: "white", borderColor: "#e2e8f0" }}>
         {avatarUrl ? (
-          <img src={avatarUrl} alt="客服頭像" className="w-9 h-9 rounded-full flex-shrink-0 object-cover" style={{ border: "1.5px solid #e2e8f0" }} />
+          <img src={avatarUrl} alt="客服頭像" className="w-7 h-7 rounded-full flex-shrink-0 object-cover" style={{ border: "1.5px solid #e2e8f0" }} />
         ) : (
-          <div className="w-9 h-9 rounded-full flex items-center justify-center text-lg flex-shrink-0"
+          <div className="w-7 h-7 rounded-full flex items-center justify-center text-base flex-shrink-0"
             style={{ background: "#A6D8F5" }}>🤖</div>
         )}
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-slate-800 text-sm">{tenantName}</p>
-          <div className="flex items-center gap-1.5 mt-0.5">
+          <p className="font-semibold text-slate-800 text-xs">{tenantName}</p>
+          <div className="flex items-center gap-1 mt-0.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-            <span className="text-xs text-slate-400">由AI服務</span>
+            <span className="text-xs text-slate-400" style={{ fontSize: 11 }}>由AI服務</span>
           </div>
         </div>
         {(contactEmail || contactPhone) && (
