@@ -536,11 +536,11 @@ export default function SettingsPage() {
             <div className="flex gap-1 mb-3 p-1 rounded-xl" style={{ background: "#f1f5f9" }}>
               {(
                 [
-                  { key: "script", label: "一鍵嵌入", badge: "推薦" },
-                  { key: "float",  label: "浮動按鈕" },
-                  { key: "inline", label: "固定內嵌" },
-                  { key: "sidebar",label: "側邊欄" },
-                ] as const
+                  { key: "script",  label: "一鍵嵌入", badge: "推薦" },
+                  { key: "float",   label: "浮動按鈕",  badge: "" },
+                  { key: "inline",  label: "固定內嵌",  badge: "" },
+                  { key: "sidebar", label: "側邊欄",    badge: "" },
+                ] as { key: "script"|"float"|"inline"|"sidebar"; label: string; badge: string }[]
               ).map(({ key, label, badge }) => (
                 <button
                   key={key}
