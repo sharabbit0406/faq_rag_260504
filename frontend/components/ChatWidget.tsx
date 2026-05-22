@@ -20,7 +20,7 @@ interface Citation {
 
 function SendIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
     </svg>
   );
@@ -245,31 +245,31 @@ export default function ChatWidget({ tenantId }: { tenantId: string }) {
   return (
     <div className="flex flex-col h-screen" style={{ fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif", background: "#f6f7fb" }}>
       {/* Header */}
-      <div className="flex-shrink-0 px-4 py-2 flex items-center gap-2.5 border-b"
+      <div className="flex-shrink-0 px-3.5 py-1.5 flex items-center gap-2 border-b"
         style={{ background: "white", borderColor: "#e2e8f0" }}>
         {avatarUrl ? (
-          <img src={avatarUrl} alt="客服頭像" className="w-7 h-7 rounded-full flex-shrink-0 object-cover" style={{ border: "1.5px solid #e2e8f0" }} />
+          <img src={avatarUrl} alt="客服頭像" className="w-5 h-5 rounded-full flex-shrink-0 object-cover" style={{ border: "1.5px solid #e2e8f0" }} />
         ) : (
-          <div className="w-7 h-7 rounded-full flex items-center justify-center text-base flex-shrink-0"
-            style={{ background: "#A6D8F5" }}>🤖</div>
+          <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: "#A6D8F5", fontSize: 11 }}>🤖</div>
         )}
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-slate-800 text-xs">{tenantName}</p>
-          <div className="flex items-center gap-1 mt-0.5">
+          <p className="font-semibold text-slate-800" style={{ fontSize: 11 }}>{tenantName}</p>
+          <div className="flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-            <span className="text-xs text-slate-400" style={{ fontSize: 11 }}>由AI服務</span>
+            <span style={{ fontSize: 10, color: "#94a3b8" }}>由AI服務</span>
           </div>
         </div>
         {(contactEmail || contactPhone) && (
           <div style={{ position: "relative", flexShrink: 0 }}>
             <button
               onClick={openHandoffModal}
-              className="flex items-center gap-1.5 text-xs font-semibold rounded-xl px-3 py-1.5 transition-all"
-              style={{ background: "#e8f4fc", color: "#5ba8d4", border: "1px solid #A6D8F5" }}
+              className="flex items-center gap-1 font-semibold rounded-lg px-2.5 py-1 transition-all"
+              style={{ background: "#e8f4fc", color: "#5ba8d4", border: "1px solid #A6D8F5", fontSize: 10 }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#c8e8f8"; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#e8f4fc"; }}
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
               </svg>
               真人客服
@@ -389,8 +389,8 @@ export default function ChatWidget({ tenantId }: { tenantId: string }) {
       </div>
 
       {/* Input */}
-      <div className="flex-shrink-0 px-4 pb-4 pt-3 border-t" style={{ background: "white", borderColor: "#e2e8f0" }}>
-        <div className="flex items-center gap-2 rounded-2xl px-3 py-1.5 transition-all"
+      <div className="flex-shrink-0 px-2.5 pb-2.5 pt-2 border-t" style={{ background: "white", borderColor: "#e2e8f0" }}>
+        <div className="flex items-center gap-1.5 rounded-xl px-2.5 py-1 transition-all"
           style={{ background: "#f8fafc", border: "1.5px solid #e2e8f0" }}
           onFocusCapture={(e) => { e.currentTarget.style.borderColor = "#A6D8F5"; e.currentTarget.style.background = "white"; }}
           onBlurCapture={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.background = "#f8fafc"; }}>
@@ -401,12 +401,13 @@ export default function ChatWidget({ tenantId }: { tenantId: string }) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
             placeholder="輸入您的問題…"
-            className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 outline-none py-1.5"
+            className="flex-1 bg-transparent text-slate-800 placeholder-slate-400 outline-none py-1"
+            style={{ fontSize: 13 }}
           />
           <button
             onClick={() => sendMessage()}
             disabled={loading || !input.trim()}
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-white transition-all disabled:opacity-40 flex-shrink-0"
+            className="w-6 h-6 rounded-lg flex items-center justify-center text-white transition-all disabled:opacity-40 flex-shrink-0"
             style={{ background: input.trim() && !loading ? "#A6D8F5" : "#cbd5e1", color: "#1e293b" }}>
             <SendIcon />
           </button>
