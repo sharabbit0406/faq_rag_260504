@@ -82,6 +82,7 @@ export default function ChatWidget({ tenantId }: { tenantId: string }) {
   const [handoffEmail, setHandoffEmail] = useState("");
 
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -114,7 +115,12 @@ export default function ChatWidget({ tenantId }: { tenantId: string }) {
   }, [tenantId]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (distFromBottom < 150) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages, loading, followUpSuggestions]);
 
   const sendMessage = async (text?: string) => {
@@ -126,6 +132,7 @@ export default function ChatWidget({ tenantId }: { tenantId: string }) {
     setMessages((prev) => [...prev, { role: "user", content: question }]);
     setLoading(true);
     inputRef.current?.focus();
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
 
     try {
       const res = await fetch(`${BASE_URL}/api/chat/`, {
@@ -272,7 +279,7 @@ export default function ChatWidget({ tenantId }: { tenantId: string }) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4"
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-4"
         style={{ scrollbarWidth: "thin", scrollbarColor: "#cbd5e1 transparent" }}>
 
         {/* Greeting */}
