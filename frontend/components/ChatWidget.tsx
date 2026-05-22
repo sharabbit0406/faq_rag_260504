@@ -389,7 +389,7 @@ export default function ChatWidget({ tenantId }: { tenantId: string }) {
       </div>
 
       {/* Input */}
-      <div className="flex-shrink-0 px-4 py-3 border-t" style={{ background: "white", borderColor: "#e2e8f0" }}>
+      <div className="flex-shrink-0 px-4 pb-4 pt-3 border-t" style={{ background: "white", borderColor: "#e2e8f0" }}>
         <div className="flex items-center gap-2 rounded-2xl px-3 py-1.5 transition-all"
           style={{ background: "#f8fafc", border: "1.5px solid #e2e8f0" }}
           onFocusCapture={(e) => { e.currentTarget.style.borderColor = "#A6D8F5"; e.currentTarget.style.background = "white"; }}
@@ -411,7 +411,6 @@ export default function ChatWidget({ tenantId }: { tenantId: string }) {
             <SendIcon />
           </button>
         </div>
-        <p className="text-center text-xs text-slate-300 mt-2">回答來自商家知識庫，由 AI 提供服務</p>
       </div>
 
       {/* Handoff Modal */}
