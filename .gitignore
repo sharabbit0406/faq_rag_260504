@@ -33,4 +33,5 @@ backend/test_full.py
 test_*.py
 test_screenshots/
 test_output/
+test_report.txt
 *.log

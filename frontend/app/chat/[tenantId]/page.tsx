@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import ReactMarkdown from "react-markdown";
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 interface Message {
@@ -357,7 +358,16 @@ export default function ChatPage({ params }: { params: Promise<{ tenantId: strin
                     ? { background: "#fff7ed", border: "1px solid #fed7aa", color: "#9a3412", borderBottomLeftRadius: "4px" }
                     : { background: "white", border: "1px solid #e2e8f0", color: "#1e293b", borderBottomLeftRadius: "4px" }
                 }>
-                <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                {msg.role === "user" ? (
+                  <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                ) : (
+                  <div className="prose prose-sm max-w-none leading-relaxed
+                    prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5
+                    prose-strong:font-semibold prose-headings:font-semibold
+                    prose-headings:text-inherit prose-p:text-inherit prose-li:text-inherit">
+                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  </div>
+                )}
               </div>
 
               {msg.citations && msg.citations.length > 0 && (

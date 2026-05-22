@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: faqrag
       POSTGRES_PASSWORD: faqrag_local
     ports:
-      - "5542:5432"
+      - "5830:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 

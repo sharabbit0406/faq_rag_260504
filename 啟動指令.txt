@@ -35,9 +35,16 @@ npm run dev`
 # 在專案根目錄執行
 `cd "c:\Users\sha\Documents\生成式AI學習\claude code\project1"
 
-docker compose up -d postgres
+docker compose up -d 
 
 確認 PostgreSQL 正常
 
 docker ps --filter "name=db"
 
+
+方案 B（治本）： 固定 Hyper-V 的動態埠起點，讓它永遠不碰 5542。
+
+
+# 以系統管理員身分執行，重開機後生效
+netsh int ipv4 set dynamicport tcp start=49152 num=16384
+執行後重開機，5542 就不會再被保留。

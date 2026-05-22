@@ -36,6 +36,22 @@ To clear Python cache before starting backend:
 Get-ChildItem -Recurse -Filter "__pycache__" | Remove-Item -Recurse -Force
 ```
 
+## Git 工作流程規範
+
+每完成一個有意義的功能、修復或變更後，**必須** 執行 commit + push，確保進度不遺失：
+
+```powershell
+git add <相關檔案>
+git commit -m "type: 清晰描述做了什麼及為什麼"
+git push
+```
+
+**提交訊息格式：** `type: 簡短描述`（type 可為 `feat` / `fix` / `docs` / `refactor` / `test` / `chore`）
+
+- 每次對話結束前若有未提交的變更，主動提醒使用者提交
+- 不可使用模糊訊息（如 `update`、`fix bug`）；須說明**改了什麼**、**為什麼改**
+- Push 到 GitHub 後確認遠端已更新
+
 ## Common Commands
 
 | Task | Command |

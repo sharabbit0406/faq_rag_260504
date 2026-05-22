@@ -64,6 +64,116 @@ function SaveStatus({ saved, error }: { saved: boolean; error: string }) {
   return null;
 }
 
+function CodeBlock({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div style={{ position: "relative" }}>
+      <pre
+        className="text-xs bg-slate-50 border border-slate-200 rounded-xl p-4 overflow-x-auto leading-relaxed"
+        style={{ fontFamily: "ui-monospace,'Cascadia Code',monospace", color: "#334155", whiteSpace: "pre-wrap", wordBreak: "break-all" }}
+      >{code}</pre>
+      <button
+        type="button"
+        onClick={() => { navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+        className="absolute top-2.5 right-2.5 text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors"
+      >
+        {copied ? "已複製 ✓" : "複製"}
+      </button>
+    </div>
+  );
+}
+
+function getEmbedCode(tab: string, widgetUrl: string, embedScriptUrl: string, tenantId: string): string {
+  switch (tab) {
+    case "script":
+      return `<!-- 智慧客服 Widget -->\n<script src="${embedScriptUrl}" data-tenant="${tenantId}"></script>`;
+    case "float":
+      return `<style>
+  #faq-btn {
+    position: fixed; bottom: 24px; right: 24px;
+    width: 56px; height: 56px; border-radius: 50%;
+    background: linear-gradient(135deg, #1d4ed8, #38bdf8);
+    color: #fff; border: none; font-size: 24px;
+    cursor: pointer; z-index: 9999;
+    box-shadow: 0 4px 20px rgba(29,78,216,.4);
+  }
+  #faq-win {
+    position: fixed; bottom: 92px; right: 24px;
+    width: 360px; height: 520px; border-radius: 20px;
+    overflow: hidden; z-index: 9998; opacity: 0;
+    pointer-events: none; transform: scale(.95) translateY(12px);
+    box-shadow: 0 12px 48px rgba(0,0,0,.18);
+    transition: transform .25s, opacity .2s;
+  }
+  #faq-win.open { opacity: 1; pointer-events: auto; transform: none; }
+  #faq-win iframe { width: 100%; height: 100%; border: none; }
+</style>
+
+<button id="faq-btn">💬</button>
+<div id="faq-win">
+  <iframe src="${widgetUrl}" title="客服助理"></iframe>
+</div>
+<script>
+  var b = document.getElementById('faq-btn');
+  var w = document.getElementById('faq-win');
+  var o = false;
+  b.onclick = function () {
+    o = !o;
+    w.classList.toggle('open', o);
+    b.textContent = o ? '✕' : '💬';
+  };
+</script>`;
+    case "inline":
+      return `<div style="width:380px; height:600px; border-radius:16px;
+  overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,0.12);">
+  <iframe src="${widgetUrl}"
+    style="width:100%; height:100%; border:none;"
+    title="客服助理">
+  </iframe>
+</div>`;
+    case "sidebar":
+      return `<style>
+  #faq-sidebar {
+    position: fixed; right: 0; top: 0; height: 100vh; width: 360px;
+    background: white; z-index: 9999;
+    box-shadow: -4px 0 24px rgba(0,0,0,.12);
+    transform: translateX(100%);
+    transition: transform .3s cubic-bezier(.4,0,.2,1);
+  }
+  #faq-sidebar.open { transform: translateX(0); }
+  #faq-sidebar iframe { width: 100%; height: 100%; border: none; }
+  #faq-sidebar-btn {
+    position: fixed; right: 0; top: 50%;
+    transform: translateY(-50%);
+    background: linear-gradient(180deg, #1d4ed8, #38bdf8);
+    color: #fff; border: none;
+    border-radius: 8px 0 0 8px;
+    padding: 14px 8px; cursor: pointer; z-index: 10000;
+    writing-mode: vertical-rl; font-size: 13px;
+    font-weight: 600; letter-spacing: 2px;
+    transition: right .3s;
+  }
+</style>
+
+<div id="faq-sidebar">
+  <iframe src="${widgetUrl}" title="客服助理"></iframe>
+</div>
+<button id="faq-sidebar-btn">客服</button>
+<script>
+  var btn = document.getElementById('faq-sidebar-btn');
+  var sidebar = document.getElementById('faq-sidebar');
+  var open = false;
+  btn.onclick = function () {
+    open = !open;
+    sidebar.classList.toggle('open', open);
+    btn.style.right = open ? '360px' : '0';
+  };
+</script>`;
+    default:
+      return "";
+  }
+}
+
 function CopyRow({ label, value, href }: { label: string; value: string; href?: string }) {
   const [copied, setCopied] = useState(false);
   return (
@@ -129,6 +239,10 @@ export default function SettingsPage() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState("");
   const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const [origin, setOrigin] = useState("");
+  const [embedTab, setEmbedTab] = useState<"script" | "float" | "inline" | "sidebar">("script");
+  useEffect(() => { setOrigin(window.location.origin); }, []);
 
   const settingsLoadedRef = useRef(false);
   const nameIsDirty = name.trim() !== savedName && !nameSaving;
@@ -402,12 +516,68 @@ export default function SettingsPage() {
         </Section>
       </form>
 
-      {/* 終端用戶連結 */}
+      {/* 嵌入設定 */}
       {tenant && (
-        <Section title="終端用戶連結">
-          <CopyRow label="對話頁面" value={`http://localhost:3000/chat/${tenant.id}`} href={`http://localhost:3000/chat/${tenant.id}`} />
-          <CopyRow label="Widget 嵌入碼（iframe）"
-            value={`<iframe src="http://localhost:3000/widget/${tenant.id}" width="380" height="600" frameborder="0"></iframe>`} />
+        <Section title="嵌入設定">
+          <CopyRow
+            label="對話頁面連結"
+            value={`${origin}/chat/${tenant.id}`}
+            href={`${origin}/chat/${tenant.id}`}
+          />
+
+          <div>
+            <p className="text-sm font-medium text-slate-700 mb-1">嵌入客服視窗</p>
+            <p className="text-xs text-slate-400 mb-4">
+              選擇嵌入樣式，將程式碼貼到您網站的{" "}
+              <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-600">&lt;/body&gt;</code> 標籤前
+            </p>
+
+            {/* Tab bar */}
+            <div className="flex gap-1 mb-3 p-1 rounded-xl" style={{ background: "#f1f5f9" }}>
+              {(
+                [
+                  { key: "script", label: "一鍵嵌入", badge: "推薦" },
+                  { key: "float",  label: "浮動按鈕" },
+                  { key: "inline", label: "固定內嵌" },
+                  { key: "sidebar",label: "側邊欄" },
+                ] as const
+              ).map(({ key, label, badge }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setEmbedTab(key)}
+                  className="flex-1 py-1.5 text-xs font-medium rounded-lg transition-all"
+                  style={
+                    embedTab === key
+                      ? { background: "white", color: "#1d4ed8", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }
+                      : { color: "#64748b" }
+                  }
+                >
+                  {label}
+                  {badge && (
+                    <span className="ml-1 text-blue-400" style={{ fontSize: 10 }}>{badge}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Description */}
+            <p className="text-xs text-slate-400 mb-3">
+              {embedTab === "script"  && "最簡單的方式，一行 script 標籤即可完成，自動建立右下角浮動按鈕"}
+              {embedTab === "float"   && "純 HTML/CSS/JS 浮動按鈕，點擊右下角 💬 展開聊天視窗"}
+              {embedTab === "inline"  && "嵌入到頁面固定區塊，適合獨立客服頁面或嵌入說明文件"}
+              {embedTab === "sidebar" && "從右側滑入的側邊欄，點擊「客服」標籤展開"}
+            </p>
+
+            <CodeBlock
+              code={getEmbedCode(
+                embedTab,
+                `${origin}/widget/${tenant.id}`,
+                `${origin}/embed.js`,
+                tenant.id,
+              )}
+            />
+          </div>
         </Section>
       )}
 

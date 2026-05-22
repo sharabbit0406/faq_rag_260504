@@ -7,10 +7,10 @@ import { useAuth } from "@/lib/auth-context";
 
 const NAV = [
   { href: "/dashboard",  icon: "▣",  label: "管理概覽" },
-  { href: "/knowledge",  icon: "◈",  label: "知識庫" },
   { href: "/unanswered", icon: "◎",  label: "未解問題" },
   { href: "/handoffs",   icon: "◑",  label: "轉接紀錄" },
   { href: "/playground", icon: "◉",  label: "對話測試" },
+  { href: "/knowledge",  icon: "◈",  label: "知識庫" },
   { href: "/settings",   icon: "◐",  label: "設定" },
 ];
 

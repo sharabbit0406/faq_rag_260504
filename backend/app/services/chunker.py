@@ -1,17 +1,18 @@
 """
-Split parsed blocks into indexable chunks using parent-child strategy.
-- Parent chunks (~500 tokens): rich context sent to the LLM
-- Child chunks (~100 tokens): small segments embedded for precise retrieval
-Each child carries its parent_content so the LLM always sees the full context.
+Parent-child chunking strategy:
+- Child  = one Q&A block from the parser (semantic unit, used for embedding & retrieval)
+- Parent = group of consecutive Q&A blocks up to PARENT_SIZE tokens (sent to the LLM)
 
-CSV/Excel rows: no splitting needed (already one record per row).
+This keeps each Q&A pair intact so vector search gets a coherent semantic unit,
+while the LLM receives the surrounding Q&As for broader context.
+
+CSV/Excel rows: each row is already a semantic unit; child == parent.
 """
 import tiktoken
 
 _enc = None
-PARENT_SIZE = 500
-CHILD_SIZE = 100
-CHILD_OVERLAP = 20
+PARENT_SIZE = 500   # max tokens per parent group
+CHILD_SIZE = 400    # fallback: max tokens per child if a single block is too large
 
 
 def _get_encoder():
@@ -25,7 +26,7 @@ def _token_len(text: str) -> int:
     return len(_get_encoder().encode(text))
 
 
-def _split_by_tokens(text: str, size: int, overlap: int) -> list[str]:
+def _split_by_tokens(text: str, size: int, overlap: int = 20) -> list[str]:
     enc = _get_encoder()
     tokens = enc.encode(text)
     chunks = []
@@ -39,74 +40,67 @@ def _split_by_tokens(text: str, size: int, overlap: int) -> list[str]:
     return chunks
 
 
-def _make_parents(blocks: list[dict]) -> list[dict]:
-    """Group blocks into parent chunks (~PARENT_SIZE tokens)."""
-    result = []
-    group_texts: list[str] = []
-    group_tokens = 0
-    group_meta: dict = {}
-
-    def flush():
-        if group_texts:
-            result.append({
-                "content": "\n\n".join(group_texts),
-                "metadata": group_meta,
-            })
-
-    for block in blocks:
-        text = block["content"]
-        meta = block.get("metadata", {})
-        tlen = _token_len(text)
-
-        if tlen >= PARENT_SIZE:
-            flush()
-            group_texts, group_tokens, group_meta = [], 0, {}
-            for i, piece in enumerate(_split_by_tokens(text, PARENT_SIZE, CHILD_OVERLAP)):
-                result.append({"content": piece, "metadata": {**meta, "sub_chunk": i}})
-        elif group_tokens + tlen > PARENT_SIZE:
-            flush()
-            group_texts = [text]
-            group_tokens = tlen
-            group_meta = meta
-        else:
-            if not group_texts:
-                group_meta = meta
-            group_texts.append(text)
-            group_tokens += tlen
-
-    flush()
-    return result
-
-
 def chunk_blocks(blocks: list[dict], file_type: str) -> list[dict]:
     """
     Returns: [{"content": str, "parent_content": str, "metadata": dict}]
-    content       — small child chunk (~100 tokens) used for embedding/retrieval
-    parent_content — full parent chunk (~500 tokens) sent to the LLM for context
+    content        — child chunk (one Q&A unit) embedded for retrieval
+    parent_content — parent group (multiple Q&As) sent to LLM
     """
     if file_type in ("csv", "xlsx", "xls"):
-        return [{"content": b["content"], "parent_content": b["content"], "metadata": b.get("metadata", {})} for b in blocks]
+        return [
+            {"content": b["content"], "parent_content": b["content"], "metadata": b.get("metadata", {})}
+            for b in blocks
+        ]
 
-    parents = _make_parents(blocks)
-    result = []
-    for parent in parents:
-        parent_content = parent["content"]
-        parent_tokens = _token_len(parent_content)
+    # Step 1: group blocks into parent groups (up to PARENT_SIZE tokens)
+    parent_groups: list[list[dict]] = []
+    current_group: list[dict] = []
+    current_tokens = 0
 
-        if parent_tokens <= CHILD_SIZE:
-            # Parent is already small — child == parent
-            result.append({
-                "content": parent_content,
-                "parent_content": parent_content,
-                "metadata": parent.get("metadata", {}),
-            })
+    for block in blocks:
+        text = block["content"]
+        tlen = _token_len(text)
+
+        if tlen >= PARENT_SIZE:
+            # Flush current group, then handle oversized block separately
+            if current_group:
+                parent_groups.append(current_group)
+                current_group = []
+                current_tokens = 0
+            parent_groups.append([block])
+        elif current_tokens + tlen > PARENT_SIZE:
+            parent_groups.append(current_group)
+            current_group = [block]
+            current_tokens = tlen
         else:
-            children = _split_by_tokens(parent_content, CHILD_SIZE, CHILD_OVERLAP)
-            for child in children:
+            current_group.append(block)
+            current_tokens += tlen
+
+    if current_group:
+        parent_groups.append(current_group)
+
+    # Step 2: for each group, each block becomes a child; the merged group is the parent
+    result = []
+    for group in parent_groups:
+        parent_content = "\n\n".join(b["content"] for b in group)
+
+        for block in group:
+            content = block["content"]
+            tlen = _token_len(content)
+
+            if tlen > CHILD_SIZE:
+                # Oversized single block — token-split into children, parent = the block
+                for piece in _split_by_tokens(content, CHILD_SIZE):
+                    result.append({
+                        "content": piece,
+                        "parent_content": content,
+                        "metadata": block.get("metadata", {}),
+                    })
+            else:
                 result.append({
-                    "content": child,
-                    "parent_content": parent_content,
-                    "metadata": parent.get("metadata", {}),
+                    "content": content,          # full Q&A block = child
+                    "parent_content": parent_content,   # group of Q&As = parent
+                    "metadata": block.get("metadata", {}),
                 })
 
     return result

@@ -18,25 +18,25 @@ _Q_PATTERN = re.compile(
 def _split_by_qa(text: str) -> list[str]:
     """Split text into Q&A segments. Falls back to paragraph split if no Q markers found.
 
-    Section headers (preamble before the first Q) are prepended to the first Q block
-    so each chunk carries its section context for better retrieval.
+    Section headers (preamble before the first Q) are prepended to EVERY Q block
+    so all chunks carry their section context for better BM25 and vector retrieval.
     """
     matches = list(_Q_PATTERN.finditer(text))
     if not matches:
         return [p.strip() for p in text.split("\n\n") if p.strip()]
 
-    segments = []
     preamble = text[: matches[0].start()].strip()
+    segments = []
     for i, m in enumerate(matches):
         end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
         seg = text[m.start() : end].strip()
         if not seg:
             continue
-        # Attach the section header to the first Q so it carries context
+        # Prepend section header only to first Q block; neighbouring Qs share a
+        # parent group so the context is already available to the LLM via parent_content.
         if i == 0 and preamble:
             seg = f"{preamble}\n\n{seg}"
-        if seg:
-            segments.append(seg)
+        segments.append(seg)
     return segments
 
 
