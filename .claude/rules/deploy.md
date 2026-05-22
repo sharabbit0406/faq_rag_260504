@@ -7,21 +7,31 @@ cd deploy
 .\redeploy.ps1
 ```
 
-腳本會依序：build backend → push → deploy backend → build frontend → push → deploy frontend。
+腳本會依序：build backend → push → deploy backend → build frontend → push → deploy frontend。  
+腳本已內建 `$env:PATH` 設定，直接執行即可，不需手動加 gcloud 到 PATH。
 
 ---
 
 ## 已知坑（每次部署都可能踩到）
 
 ### 1. gcloud 不在 PATH
-gcloud 安裝位置不在系統 PATH，每次 PowerShell 執行前必須先加入：
+gcloud 安裝位置不在系統 PATH。`redeploy.ps1` 已在腳本開頭自動加入，**手動執行 gcloud 指令時**才需要：
 ```powershell
 $env:PATH = "C:\Users\sha\AppData\Local\Google\Cloud SDK\google-cloud-sdk\bin;$env:PATH"
 ```
 
 ### 2. `--set-env-vars` 特殊字元解析失敗
-DATABASE_URL 含 `:` 和 `?`，在 PowerShell 傳給 gcloud 時會被誤解析，導致 exit code 2。
+DATABASE_URL 和 CORS_ORIGINS 含 `:` `/` `?` 等字元，在 PowerShell 傳給 gcloud 時會被誤解析，導致 exit code 2。
 **解法：永遠用 `--env-vars-file deploy/backend-full-env.yaml`**，不要在命令列直接傳 env vars。
+`redeploy.ps1` 已改用 `--env-vars-file`，此坑已繞過。
+
+### 8. redeploy.ps1 必須用 CRLF 換行存檔
+PowerShell 5.1（Windows 內建）對 LF-only 換行 + 中文/Emoji 混合的腳本有解析錯誤（`The string is missing the terminator`）。
+**若用編輯器修改 redeploy.ps1，必須確保存成 CRLF。** 用以下 PowerShell 指令重寫：
+```powershell
+$content = Get-Content "deploy\redeploy.ps1" -Raw
+[System.IO.File]::WriteAllText("deploy\redeploy.ps1", ($content -replace "`r?`n", "`r`n"), [System.Text.Encoding]::UTF8)
+```
 
 ### 3. Docker push 需要 Artifact Registry 認證
 ```powershell
