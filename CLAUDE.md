@@ -13,6 +13,7 @@ Stack: FastAPI (Python 3.11+) + Next.js 16.2.4 + PostgreSQL + Qdrant + Vertex AI
 - **Frontend structure, Next.js notes, chat widget:** read `.claude/rules/frontend.md`
 - **Infrastructure, env vars, Docker ports:** read `.claude/rules/infrastructure.md`
 - **Testing conventions and commands:** read `.claude/rules/testing.md`
+- **部署到 Cloud Run（已知坑、proxy 設定、checklist）:** read `.claude/rules/deploy.md`
 
 ## Starting the Dev Environment
 
