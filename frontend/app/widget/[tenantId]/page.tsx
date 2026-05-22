@@ -16,6 +16,7 @@ interface WidgetConfig {
   contact_phone?: string;
   support_cta?: string;
   greeting_message: string;
+  avatar_url?: string;
 }
 
 function SendIcon() {
@@ -27,7 +28,12 @@ function SendIcon() {
   );
 }
 
-function BotAvatar() {
+function BotAvatar({ avatarUrl }: { avatarUrl?: string }) {
+  if (avatarUrl) {
+    return (
+      <img src={avatarUrl} alt="bot" className="w-6 h-6 rounded-full object-cover flex-shrink-0 mt-0.5" />
+    );
+  }
   return (
     <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
@@ -164,9 +170,13 @@ export default function WidgetPage({ params }: { params: Promise<{ tenantId: str
       <div style={{ background: "linear-gradient(135deg, #3b82f6 0%, #38bdf8 100%)", flexShrink: 0 }}
         className="px-4 py-3 flex items-center gap-3 shadow-sm"
       >
-        <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-lg flex-shrink-0">
-          🤖
-        </div>
+        {config.avatar_url ? (
+          <img src={config.avatar_url} alt="avatar" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+        ) : (
+          <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-lg flex-shrink-0">
+            🤖
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <p className="text-white font-semibold text-sm leading-tight truncate">{config.tenant_name}</p>
           <div className="flex items-center gap-1.5 mt-0.5">
@@ -235,7 +245,7 @@ export default function WidgetPage({ params }: { params: Promise<{ tenantId: str
       >
         {messages.map((msg, i) => (
           <div key={i} className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
-            {msg.role === "assistant" && <BotAvatar />}
+            {msg.role === "assistant" && <BotAvatar avatarUrl={config.avatar_url} />}
 
             <div className={`max-w-[78%] ${msg.role === "user" ? "items-end" : "items-start"} flex flex-col gap-1`}>
               <div
@@ -294,7 +304,7 @@ export default function WidgetPage({ params }: { params: Promise<{ tenantId: str
         {/* 打字中動畫 */}
         {loading && (
           <div className="flex gap-2">
-            <BotAvatar />
+            <BotAvatar avatarUrl={config.avatar_url} />
             <div className="bg-white border border-e2e8f0 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm"
               style={{ border: "1px solid #e2e8f0" }}>
               <div className="flex gap-1 items-center h-3">
