@@ -113,7 +113,7 @@ export default function HandoffsPage() {
           <button key={key} onClick={() => setFilter(key)}
             className="px-4 py-2 rounded-xl text-sm font-medium transition-all"
             style={filter === key
-              ? { background: "linear-gradient(135deg,#3b82f6,#38bdf8)", color: "white" }
+              ? { background: "#A6D8F5", color: "#1e293b" }
               : { background: "white", color: "#64748b", border: "1px solid #e2e8f0" }}>
             {label}（{counts[key]}）
           </button>
@@ -158,12 +158,12 @@ export default function HandoffsPage() {
                   {isExpanded && (
                     <div className="px-6 pb-5 pt-0 space-y-3">
                       {h.contact_email && (
-                        <div className="flex items-center gap-2 bg-blue-50 rounded-xl px-4 py-2.5">
+                        <div className="flex items-center gap-2 rounded-xl px-4 py-2.5" style={{ background: "#e8f4fc" }}>
                           <span className="text-base">✉️</span>
                           <div>
                             <p className="text-xs font-semibold text-slate-400">用戶 Email</p>
                             <a href={`mailto:${h.contact_email}`}
-                              className="text-sm font-medium text-blue-600 hover:underline">
+                              className="text-sm font-medium hover:underline" style={{ color: "#5ba8d4" }}>
                               {h.contact_email}
                             </a>
                           </div>
@@ -188,7 +188,7 @@ export default function HandoffsPage() {
                           disabled={!!h.kb_added}
                           placeholder="請輸入這個問題的標準回答…"
                           className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 resize-none outline-none disabled:bg-slate-50 disabled:text-slate-400"
-                          onFocus={(e) => { e.currentTarget.style.borderColor = "#38bdf8"; }}
+                          onFocus={(e) => { e.currentTarget.style.borderColor = "#A6D8F5"; }}
                           onBlur={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; }}
                         />
                         {!h.kb_added && (
@@ -225,7 +225,7 @@ export default function HandoffsPage() {
                             onClick={() => updateStatus(h.id, "resolved")}
                             disabled={saving === h.id}
                             className="text-xs px-3 py-1.5 rounded-lg text-white font-medium disabled:opacity-50 transition-colors"
-                            style={{ background: "linear-gradient(135deg,#3b82f6,#38bdf8)" }}>
+                            style={{ background: "#A6D8F5", color: "#1e293b" }}>
                             {saving === h.id ? "儲存中…" : "✓ 標記已解決"}
                           </button>
                         )}

@@ -92,7 +92,7 @@ export default function UnansweredPage() {
           <button key={key} onClick={() => setFilter(key)}
             className="px-4 py-2 rounded-xl text-sm font-medium transition-all"
             style={filter === key
-              ? { background: "linear-gradient(135deg,#3b82f6,#38bdf8)", color: "white" }
+              ? { background: "#A6D8F5", color: "#1e293b" }
               : { background: "white", color: "#64748b", border: "1px solid #e2e8f0" }}>
             {label}（{counts[key]}）
           </button>
@@ -150,7 +150,7 @@ export default function UnansweredPage() {
                           onClick={() => updateQuestion(q.id, { status: "answered", manual_answer: editAnswer[q.id] ?? q.manual_answer ?? undefined })}
                           disabled={saving === q.id}
                           className="text-xs px-3 py-1.5 rounded-lg text-white font-medium disabled:opacity-50 transition-colors"
-                          style={{ background: "linear-gradient(135deg,#3b82f6,#38bdf8)" }}>
+                          style={{ background: "#A6D8F5", color: "#1e293b" }}>
                           {saving === q.id ? "儲存中…" : "✓ 標記已解"}
                         </button>
                         <button

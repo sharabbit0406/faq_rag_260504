@@ -165,7 +165,7 @@ export default function PlaygroundPage() {
             <div
               onClick={() => setDetailMode(!detailMode)}
               className="w-9 h-5 rounded-full flex items-center px-0.5 transition-colors cursor-pointer"
-              style={{ background: detailMode ? "linear-gradient(135deg,#3b82f6,#38bdf8)" : "#cbd5e1" }}
+              style={{ background: detailMode ? "#A6D8F5" : "#cbd5e1" }}
             >
               <div className="w-4 h-4 rounded-full bg-white shadow transition-transform"
                 style={{ transform: detailMode ? "translateX(16px)" : "translateX(0)" }} />
@@ -210,7 +210,7 @@ export default function PlaygroundPage() {
               {aiStyleSaved && <span className="text-xs text-emerald-600 font-medium">已儲存 ✓</span>}
               <button onClick={saveAiStyle} disabled={aiStyleSaving || !aiStyleIsDirty}
                 className="text-xs px-3 py-1.5 rounded-xl font-semibold text-white disabled:opacity-40 transition-all"
-                style={{ background: "linear-gradient(135deg,#3b82f6,#38bdf8)" }}>
+                style={{ background: "#A6D8F5", color: "#1e293b" }}>
                 {aiStyleSaving ? "儲存中…" : "儲存"}
               </button>
             </div>
@@ -219,8 +219,8 @@ export default function PlaygroundPage() {
                 <label key={opt.value}
                   className="flex-1 flex flex-col gap-0.5 rounded-xl border-2 px-3 py-2.5 cursor-pointer transition-all"
                   style={{
-                    borderColor: aiTone === opt.value ? "#38bdf8" : "#e2e8f0",
-                    background: aiTone === opt.value ? "#eff6ff" : "#f8fafc",
+                    borderColor: aiTone === opt.value ? "#A6D8F5" : "#e2e8f0",
+                    background: aiTone === opt.value ? "#e8f4fc" : "#f8fafc",
                   }}>
                   <div className="flex items-center gap-1.5">
                     <input type="radio" name="pg_ai_tone" value={opt.value}
@@ -237,13 +237,13 @@ export default function PlaygroundPage() {
               <textarea rows={2} value={aiStyleNote} onChange={(e) => setAiStyleNote(e.target.value)}
                 placeholder="描述你想要的語氣風格，例如：像台灣年輕店員，親切有活力，可以加入台式口語…"
                 className="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 outline-none resize-none transition-all"
-                onFocus={(e) => { e.currentTarget.style.borderColor = "#38bdf8"; }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = "#A6D8F5"; }}
                 onBlur={(e) => { e.currentTarget.style.borderColor = "#cbd5e1"; }} />
             ) : (
               <input type="text" value={aiStyleNote} onChange={(e) => setAiStyleNote(e.target.value)}
                 placeholder="補充說明（選填）：例如「我們是寵物品牌，可以對用戶的寵物表示關心」"
                 className="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 outline-none transition-all"
-                onFocus={(e) => { e.currentTarget.style.borderColor = "#38bdf8"; }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = "#A6D8F5"; }}
                 onBlur={(e) => { e.currentTarget.style.borderColor = "#cbd5e1"; }} />
             )}
           </div>
@@ -259,7 +259,7 @@ export default function PlaygroundPage() {
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full gap-5 py-16 text-center">
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
-                style={{ background: "linear-gradient(135deg,#eff6ff,#dbeafe)" }}>🤖</div>
+                style={{ background: "#e8f4fc" }}>🤖</div>
               <div>
                 <p className="font-semibold text-slate-700">Playground 對話測試</p>
                 <p className="text-sm text-slate-400 mt-1">此對話不計入統計與未解問題紀錄</p>
@@ -274,7 +274,9 @@ export default function PlaygroundPage() {
                 <div className="flex flex-wrap justify-center gap-2">
                   {hints.map((q) => (
                     <button key={q} onClick={() => sendMessage(q)}
-                      className="text-xs border border-slate-200 rounded-xl px-3 py-2 text-slate-600 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+                      className="text-xs border border-slate-200 rounded-xl px-3 py-2 text-slate-600 transition-colors"
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "#A6D8F5"; (e.currentTarget as HTMLButtonElement).style.background = "#e8f4fc"; (e.currentTarget as HTMLButtonElement).style.color = "#5ba8d4"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "#e2e8f0"; (e.currentTarget as HTMLButtonElement).style.background = ""; (e.currentTarget as HTMLButtonElement).style.color = "#475569"; }}>
                       {q}
                     </button>
                   ))}
@@ -290,7 +292,7 @@ export default function PlaygroundPage() {
                 className="max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed"
                 style={
                   msg.role === "user"
-                    ? { background: "linear-gradient(135deg,#3b82f6,#38bdf8)", color: "white", borderBottomRightRadius: "4px" }
+                    ? { background: "#A6D8F5", color: "#1e293b", borderBottomRightRadius: "4px" }
                     : msg.was_refused
                     ? { background: "#fff7ed", border: "1px solid #fed7aa", color: "#9a3412", borderBottomLeftRadius: "4px" }
                     : { background: "#f8fafc", border: "1px solid #e2e8f0", color: "#1e293b", borderBottomLeftRadius: "4px" }
@@ -304,8 +306,8 @@ export default function PlaygroundPage() {
               {msg.role === "assistant" && msg.citations && msg.citations.length > 0 && (
                 <div className="mt-2 max-w-[75%] space-y-1.5">
                   {msg.citations.map((c, ci) => (
-                    <div key={ci} className="text-xs rounded-xl px-3 py-2 text-blue-700 flex gap-2"
-                      style={{ background: "#eff6ff", border: "1px solid #bfdbfe" }}>
+                    <div key={ci} className="text-xs rounded-xl px-3 py-2 flex gap-2"
+                      style={{ background: "#e8f4fc", border: "1px solid #A6D8F5", color: "#5ba8d4" }}>
                       <span className="shrink-0">📎</span>
                       <span>{c.excerpt}</span>
                     </div>
@@ -373,7 +375,7 @@ export default function PlaygroundPage() {
         <div className="border-t border-slate-100 px-4 py-3 flex items-center gap-3">
           <div className="flex-1 flex items-center gap-2 rounded-xl px-3 py-2 transition-all"
             style={{ background: "#f8fafc", border: "1.5px solid #e2e8f0" }}
-            onFocusCapture={(e) => { e.currentTarget.style.borderColor = "#38bdf8"; e.currentTarget.style.background = "white"; }}
+            onFocusCapture={(e) => { e.currentTarget.style.borderColor = "#A6D8F5"; e.currentTarget.style.background = "white"; }}
             onBlurCapture={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.background = "#f8fafc"; }}>
             <input
               ref={inputRef}
@@ -389,7 +391,7 @@ export default function PlaygroundPage() {
             onClick={() => sendMessage()}
             disabled={loading || !input.trim()}
             className="w-9 h-9 rounded-xl flex items-center justify-center text-white transition-all disabled:opacity-40 flex-shrink-0"
-            style={{ background: input.trim() && !loading ? "linear-gradient(135deg,#3b82f6,#38bdf8)" : "#cbd5e1" }}>
+            style={{ background: input.trim() && !loading ? "#A6D8F5" : "#cbd5e1", color: "#1e293b" }}>
             <SendIcon />
           </button>
         </div>

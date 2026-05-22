@@ -23,7 +23,7 @@ function SidebarContent({
     <>
       {/* Logo */}
       <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 12, padding: "20px", borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap" }}>
-        <div style={{ width: 32, height: 32, borderRadius: 10, background: "linear-gradient(135deg,#1d4ed8,#38bdf8)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: 14, fontWeight: 700, flexShrink: 0 }}>✦</div>
+        <div style={{ width: 32, height: 32, borderRadius: 10, background: "#A6D8F5", display: "flex", alignItems: "center", justifyContent: "center", color: "#1e293b", fontSize: 14, fontWeight: 700, flexShrink: 0 }}>✦</div>
         <div style={{ minWidth: 0 }}>
           <p style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", lineHeight: 1.3 }}>智慧客服</p>
           <p style={{ fontSize: 11, color: "#94a3b8" }}>管理後台</p>
@@ -41,7 +41,7 @@ function SidebarContent({
                 padding: "10px 12px", borderRadius: 10,
                 fontSize: 13, fontWeight: 500, textDecoration: "none", whiteSpace: "nowrap",
                 ...(active
-                  ? { background: "linear-gradient(135deg,#1d4ed8,#38bdf8)", color: "white" }
+                  ? { background: "#A6D8F5", color: "#1e293b" }
                   : { color: "#64748b" }),
               }}
               onMouseEnter={(e) => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = "#f1f5f9"; (e.currentTarget as HTMLAnchorElement).style.color = "#1e293b"; } }}
@@ -57,7 +57,7 @@ function SidebarContent({
       {/* Tenant */}
       <div style={{ padding: 12, borderTop: "1px solid #e2e8f0", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 10, background: "#f8fafc", whiteSpace: "nowrap" }}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg,#1d4ed8,#38bdf8)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{initials}</div>
+          <div style={{ width: 28, height: 28, borderRadius: 8, background: "#A6D8F5", display: "flex", alignItems: "center", justifyContent: "center", color: "#1e293b", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{initials}</div>
           <p style={{ fontSize: 12, color: "#475569", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis" }}>{tenant.name}</p>
         </div>
       </div>
@@ -81,7 +81,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex items-center justify-center min-h-screen" style={{ background: "#f6f7fb" }}>
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-white text-xl"
-            style={{ background: "linear-gradient(135deg,#1d4ed8,#38bdf8)" }}>✦</div>
+            style={{ background: "#A6D8F5", color: "#1e293b" }}>✦</div>
           <p className="text-sm text-slate-500">載入中…</p>
         </div>
       </div>
@@ -179,14 +179,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 rounded-xl px-3 py-1.5 border text-sm font-medium transition-all"
-            style={{ background: "#eff6ff", borderColor: "#bfdbfe", color: "#1d4ed8", textDecoration: "none" }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "#dbeafe"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "#eff6ff"; }}
+            style={{ background: "#e8f4fc", borderColor: "#A6D8F5", color: "#5ba8d4", textDecoration: "none" }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "#c8e8f8"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "#e8f4fc"; }}
           >
             <span style={{ fontSize: 15 }}>💬</span>
             <span className="hidden sm:inline">用戶對話區</span>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
-              stroke="#60a5fa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              stroke="#A6D8F5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
               <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
             </svg>
@@ -195,7 +195,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="flex-1" />
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold"
-              style={{ background: "linear-gradient(135deg,#1d4ed8,#38bdf8)" }}>{initials}</div>
+              style={{ background: "#A6D8F5", color: "#1e293b" }}>{initials}</div>
             <span className="text-sm font-medium text-slate-700 hidden sm:block">{tenant.name}</span>
           </div>
         </header>

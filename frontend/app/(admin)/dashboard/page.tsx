@@ -84,7 +84,7 @@ export default function DashboardPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <StatCard label="今日諮詢" value={stats?.today_queries ?? 0} sub="來自終端用戶的提問"
-            accent="#3b82f6" icon="💬" onClick={() => router.push("/unanswered")} />
+            accent="#A6D8F5" icon="💬" onClick={() => router.push("/unanswered")} />
           <StatCard label="拒答次數" value={<span style={{ color: "#f59e0b" }}>{stats?.today_refused ?? 0}</span>}
             sub="知識庫無法回答的問題" accent="#f59e0b" icon="⚠️" onClick={() => router.push("/unanswered")} />
           <StatCard label="未解問題" value={<span style={{ color: "#ef4444" }}>{stats?.unanswered_new ?? 0}</span>}
@@ -100,7 +100,7 @@ export default function DashboardPage() {
               </span>
             }
             sub={stats?.daily_llm_limit === 0 ? "不限制" : "今日 Gemini 呼叫次數"}
-            accent={limitExceeded ? "#ef4444" : "#38bdf8"} icon="⚡"
+            accent={limitExceeded ? "#ef4444" : "#A6D8F5"} icon="⚡"
             onClick={() => router.push("/settings")}
           />
         </div>
@@ -117,7 +117,7 @@ export default function DashboardPage() {
             key: "1", done: step1Done,
             icon: "📂", title: "上傳知識庫",
             desc: "將你的 FAQ 文件（PDF、CSV、Excel、TXT）上傳，系統自動建立 AI 向量索引。",
-            action: "前往知識庫", href: "/knowledge", accent: "#3b82f6",
+            action: "前往知識庫", href: "/knowledge", accent: "#A6D8F5",
             onAction: () => router.push("/knowledge"),
           },
           {

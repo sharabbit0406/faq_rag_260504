@@ -32,7 +32,7 @@ function StyledInput({ ...props }: React.InputHTMLAttributes<HTMLInputElement>) 
   return (
     <input {...props}
       className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all disabled:bg-slate-50 disabled:text-slate-400"
-      onFocus={(e) => { e.currentTarget.style.borderColor = "#38bdf8"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.1)"; }}
+      onFocus={(e) => { e.currentTarget.style.borderColor = "#A6D8F5"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(166,216,245,0.3)"; }}
       onBlur={(e) => { e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.boxShadow = "none"; }}
     />
   );
@@ -42,7 +42,7 @@ function StyledTextarea({ ...props }: React.TextareaHTMLAttributes<HTMLTextAreaE
   return (
     <textarea {...props}
       className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none resize-none transition-all"
-      onFocus={(e) => { e.currentTarget.style.borderColor = "#38bdf8"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.1)"; }}
+      onFocus={(e) => { e.currentTarget.style.borderColor = "#A6D8F5"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(166,216,245,0.3)"; }}
       onBlur={(e) => { e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.boxShadow = "none"; }}
     />
   );
@@ -51,8 +51,8 @@ function StyledTextarea({ ...props }: React.TextareaHTMLAttributes<HTMLTextAreaE
 function SaveButton({ loading, label = "儲存" }: { loading: boolean; label?: string }) {
   return (
     <button type="submit" disabled={loading}
-      className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-60"
-      style={{ background: "linear-gradient(135deg,#3b82f6,#38bdf8)" }}>
+      className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-60"
+      style={{ background: "#A6D8F5", color: "#1e293b" }}>
       {loading ? "儲存中…" : label}
     </button>
   );
@@ -92,10 +92,10 @@ function getEmbedCode(tab: string, widgetUrl: string, embedScriptUrl: string, te
   #faq-btn {
     position: fixed; bottom: 24px; right: 24px;
     width: 56px; height: 56px; border-radius: 50%;
-    background: linear-gradient(135deg, #1d4ed8, #38bdf8);
-    color: #fff; border: none; font-size: 24px;
+    background: #A6D8F5;
+    color: #1e293b; border: none; font-size: 24px;
     cursor: pointer; z-index: 9999;
-    box-shadow: 0 4px 20px rgba(29,78,216,.4);
+    box-shadow: 0 4px 20px rgba(166,216,245,.6);
   }
   #faq-win {
     position: fixed; bottom: 92px; right: 24px;
@@ -145,8 +145,8 @@ function getEmbedCode(tab: string, widgetUrl: string, embedScriptUrl: string, te
   #faq-sidebar-btn {
     position: fixed; right: 0; top: 50%;
     transform: translateY(-50%);
-    background: linear-gradient(180deg, #1d4ed8, #38bdf8);
-    color: #fff; border: none;
+    background: #A6D8F5;
+    color: #1e293b; border: none;
     border-radius: 8px 0 0 8px;
     padding: 14px 8px; cursor: pointer; z-index: 10000;
     writing-mode: vertical-rl; font-size: 13px;
@@ -182,7 +182,7 @@ function CopyRow({ label, value, href }: { label: string; value: string; href?: 
       <div className="flex items-center gap-2">
         {href ? (
           <a href={href} target="_blank" rel="noopener noreferrer"
-            className="flex-1 text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 break-all text-blue-600 hover:underline font-mono">
+            className="flex-1 text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 break-all hover:underline font-mono" style={{ color: "#5ba8d4" }}>
             {value}
           </a>
         ) : (
@@ -352,7 +352,7 @@ export default function SettingsPage() {
           <p className="text-xs text-slate-400">顯示在聊天視窗的 AI 頭像，建議使用正方形圖片。未上傳時顯示預設機器人圖示。</p>
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center"
-              style={{ background: avatarUrl ? "transparent" : "linear-gradient(135deg,#3b82f6,#38bdf8)", border: "2px solid #e2e8f0" }}>
+              style={{ background: avatarUrl ? "transparent" : "#A6D8F5", border: "2px solid #e2e8f0" }}>
               {avatarUrl
                 ? <img src={avatarUrl} alt="頭像預覽" className="w-full h-full object-cover" />
                 : <span className="text-2xl">🤖</span>}
@@ -378,8 +378,8 @@ export default function SettingsPage() {
             <div className="flex gap-2">
               <StyledInput value={name} onChange={(e) => setName(e.target.value)} placeholder="店家名稱" required className="flex-1" />
               <button type="submit" disabled={nameSaving || !nameIsDirty}
-                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all whitespace-nowrap shrink-0"
-                style={{ background: "linear-gradient(135deg,#3b82f6,#38bdf8)" }}>
+                className="px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 transition-all whitespace-nowrap shrink-0"
+                style={{ background: "#A6D8F5", color: "#1e293b" }}>
                 {nameSaving ? "儲存中…" : "儲存"}
               </button>
             </div>
@@ -457,7 +457,9 @@ export default function SettingsPage() {
               {dialogue.custom_suggestions.length < 5 && (
                 <button type="button"
                   onClick={() => setDialogue((s) => ({ ...s, custom_suggestions: [...s.custom_suggestions, ""] }))}
-                  className="text-xs px-3 py-1.5 rounded-lg border border-dashed border-slate-300 text-slate-400 hover:border-blue-300 hover:text-blue-500 transition-colors">
+                  className="text-xs px-3 py-1.5 rounded-lg border border-dashed border-slate-300 text-slate-400 transition-colors"
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "#A6D8F5"; (e.currentTarget as HTMLButtonElement).style.color = "#5ba8d4"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "#cbd5e1"; (e.currentTarget as HTMLButtonElement).style.color = "#94a3b8"; }}>
                   ＋ 新增泡泡
                 </button>
               )}
@@ -502,9 +504,9 @@ export default function SettingsPage() {
               onChange={(e) => setSystem((s) => ({ ...s, contact_phone: e.target.value }))}
               placeholder="+886-2-12345678" />
           </Field>
-          <div className="flex items-start gap-2.5 rounded-xl px-4 py-3" style={{ background: "#eff6ff", border: "1px solid #bfdbfe" }}>
+          <div className="flex items-start gap-2.5 rounded-xl px-4 py-3" style={{ background: "#e8f4fc", border: "1px solid #A6D8F5" }}>
             <span style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }}>💡</span>
-            <p className="text-xs text-blue-700 leading-relaxed">
+            <p className="text-xs leading-relaxed" style={{ color: "#5ba8d4" }}>
               至少填入 <strong>Email 或電話其中一項</strong>，用戶對話頁面才會顯示「真人客服」按鈕。兩項都填則同時提供兩種聯絡方式。
             </p>
           </div>
@@ -549,13 +551,13 @@ export default function SettingsPage() {
                   className="flex-1 py-1.5 text-xs font-medium rounded-lg transition-all"
                   style={
                     embedTab === key
-                      ? { background: "white", color: "#1d4ed8", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }
+                      ? { background: "white", color: "#5ba8d4", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }
                       : { color: "#64748b" }
                   }
                 >
                   {label}
                   {badge && (
-                    <span className="ml-1 text-blue-400" style={{ fontSize: 10 }}>{badge}</span>
+                    <span className="ml-1" style={{ fontSize: 10, color: "#A6D8F5" }}>{badge}</span>
                   )}
                 </button>
               ))}

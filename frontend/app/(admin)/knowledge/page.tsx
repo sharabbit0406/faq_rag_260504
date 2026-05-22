@@ -16,7 +16,7 @@ function formatBytes(bytes: number) {
 function StatusBadge({ status }: { status: DocumentStatus }) {
   const map: Record<DocumentStatus, { label: string; bg: string; color: string }> = {
     pending:    { label: "等待中",  bg: "#f1f5f9", color: "#64748b" },
-    processing: { label: "索引中…", bg: "#eff6ff", color: "#3b82f6" },
+    processing: { label: "索引中…", bg: "#e8f4fc", color: "#5ba8d4" },
     done:       { label: "完成",   bg: "#f0fdf4", color: "#16a34a" },
     failed:     { label: "失敗",   bg: "#fef2f2", color: "#dc2626" },
   };
@@ -139,8 +139,8 @@ export default function KnowledgePage() {
       <div
         className="mb-6 rounded-2xl border-2 border-dashed p-12 text-center transition-all cursor-pointer"
         style={{
-          borderColor: dragging ? "#38bdf8" : "#cbd5e1",
-          background: dragging ? "#eff6ff" : "white",
+          borderColor: dragging ? "#A6D8F5" : "#cbd5e1",
+          background: dragging ? "#e8f4fc" : "white",
         }}
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
@@ -148,7 +148,7 @@ export default function KnowledgePage() {
         onClick={() => fileInputRef.current?.click()}
       >
         <div className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center text-2xl"
-          style={{ background: dragging ? "#dbeafe" : "#f1f5f9" }}>
+          style={{ background: dragging ? "#c8e8f8" : "#f1f5f9" }}>
           {uploadingCount > 0 ? "⏳" : "📁"}
         </div>
         <p className="font-semibold text-slate-700 mb-1">
